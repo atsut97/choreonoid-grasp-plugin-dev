@@ -194,7 +194,7 @@ handle_args() {
 
 runcmd() {
   if [[ $DRY_RUN == true ]]; then
-    printf '%q ' "$@"
+    echo "$@"
   else
     "$@"
   fi
