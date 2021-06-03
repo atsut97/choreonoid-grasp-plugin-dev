@@ -213,7 +213,7 @@ build_docker_image() {
   if [[ -f "$DOCKERFILE" ]]; then
     runcmd docker build --tag $image --file "$DOCKERFILE" \
            --build-arg CHOREONOID_REPO=$CNOID_REPO \
-           --build-arg CHOREONOID_VER=$CNOID_TAG \
+           --build-arg CHOREONOID_TAG=$CNOID_TAG \
            "$script_dir"
     [ $? -eq 0 ] && BUILD_IMAGE_SUCCESS=true
   else

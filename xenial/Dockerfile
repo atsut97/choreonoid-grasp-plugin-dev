@@ -61,20 +61,20 @@ RUN cd /opt && \
 
 # Define variables.
 ARG CHOREONOID_REPO=choreonoid/choreonoid
-ARG CHOREONOID_VER=master
+ARG CHOREONOID_TAG=master
 # ARG GRASP_PLUGIN_REPO=atsut97/graspPlugin
 # ARG GRASP_PLUGIN_TAG=master
 
 # Download Choreonoid source code.
 RUN cd /opt && \
-    git clone --depth 1 --branch ${CHOREONOID_VER} git://github.com/${CHOREONOID_REPO}.git && \
+    git clone --depth 1 --branch ${CHOREONOID_TAG} git://github.com/${CHOREONOID_REPO}.git && \
     mkdir -p /opt/choreonoid/build
 
 WORKDIR /opt/choreonoid/build
 
 # Build Choreonoid.
 # RUN cd /opt && \
-#     git clone --depth 1 --branch ${CHOREONOID_VER} git://github.com/${CHOREONOID_REPO}.git && \
+#     git clone --depth 1 --branch ${CHOREONOID_TAG} git://github.com/${CHOREONOID_REPO}.git && \
 #     git clone --depth 1 --branch ${GRASP_PLUGIN_TAG} git://github.com/${GRASP_PLUGIN_REPO}.git /opt/choreonoid/ext/graspPlugin && \
 #     mkdir -p /opt/choreonoid/build && \
 #     cd /opt/choreonoid/build && \
