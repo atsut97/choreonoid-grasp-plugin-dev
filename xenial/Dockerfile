@@ -46,17 +46,15 @@ RUN apt-get update && \
 RUN ln -s /usr/lib/python2.7/dist-packages/vtk/libvtkRenderingPythonTkWidgets.x86_64-linux-gnu.so /usr/lib/x86_64-linux-gnu/libvtkRenderingPythonTkWidgets.so && \
     ln -s /usr/bin/vtk6 /usr/bin/vtk
 
-# RUN apt-get update && \
-#     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-#     omniorb-nameserver=4.1.6-2ubuntu1 \
-#     && rm -rf /var/lib/apt/lists/*
+# Create directory to distribute artifacts.
+RUN mkdir -p /home/usr
 
 # Install OpenRTM-aist 1.1.2.
 RUN cd /opt && \
     curl -sLO http://openrtm.org/pub/OpenRTM-aist/cxx/1.1.2/OpenRTM-aist-1.1.2.tar.gz && \
     tar xzf OpenRTM-aist-1.1.2.tar.gz && \
     cd OpenRTM-aist-1.1.2 && \
-    ./configure --prefix=/usr --without-doxygen && \
+    ./configure --prefix=/home/usr --without-doxygen && \
     make && \
     make install && \
     make clean
