@@ -59,34 +59,37 @@ RUN cd /opt && \
     make install && \
     make clean
 
-# Download Choreonoid source code
+# Define variables.
 ARG CHOREONOID_REPO=choreonoid/choreonoid
 ARG CHOREONOID_VER=master
 # ARG GRASP_PLUGIN_REPO=atsut97/graspPlugin
-# ARG GRASP_PLUGIN_BRANCH=master
+# ARG GRASP_PLUGIN_TAG=master
 
+# Download Choreonoid source code.
 RUN cd /opt && \
     git clone --depth 1 --branch ${CHOREONOID_VER} git://github.com/${CHOREONOID_REPO}.git && \
-    # git clone --depth 1 --branch ${GRASP_PLUGIN_BRANCH} git://github.com/${GRASP_PLUGIN_REPO}.git /opt/choreonoid/ext/graspPlugin && \
     mkdir -p /opt/choreonoid/build
 
 WORKDIR /opt/choreonoid/build
 
 # Build Choreonoid.
 # RUN cd /opt && \
-#     git clone --depth 1 --branch v1.6.0 git://github.com/${CHOREONOID_REPO}.git && \
-#     git clone --depth 1 --branch ${GRASP_PLUGIN_BRANCH} git://github.com/${GRASP_PLUGIN_REPO}.git /opt/choreonoid/ext/graspPlugin && \
+#     git clone --depth 1 --branch ${CHOREONOID_VER} git://github.com/${CHOREONOID_REPO}.git && \
+#     git clone --depth 1 --branch ${GRASP_PLUGIN_TAG} git://github.com/${GRASP_PLUGIN_REPO}.git /opt/choreonoid/ext/graspPlugin && \
 #     mkdir -p /opt/choreonoid/build && \
 #     cd /opt/choreonoid/build && \
 #     cmake \
-#         -DBUILD_CORBA_PLUGIN:BOOL=TRUE \
+#         -DBUILD_CORBA_PLUGIN:BOOL=ON \
 #         -DBUILD_GRASP_PCL_PLUGIN:BOOL=ON \
-#         -DBUILD_GROBOT_PLUGIN:BOOL=TRUE \
-#         -DBUILD_OPENRTM_PLUGIN:BOOL=TRUE \
-#         -DBUILD_PYTHON_PLUGIN:BOOL=TRUE \
+#         -DBUILD_GROBOT_PLUGIN:BOOL=ON \
+#         -DBUILD_OPENRTM_PLUGIN:BOOL=ON \
+#         -DBUILD_PYTHON_PLUGIN:BOOL=ON \
 #         -DCMAKE_BUILD_TYPE=Release \
-#         -DCNOID_ENABLE_GETTEXT:BOOL=TRUE \
-#         -DENABLE_CORBA:BOOL=TRUE \
+#         -DCNOID_ENABLE_GETTEXT:BOOL=ON \
+#         -DENABLE_CORBA:BOOL=ON \
+#         -DOPENRTM_DIR:PATH=/home/usr \
+#         -DOpenRTM_DIR:PATH=/home/usr/lib/openrtm-1.1/cmake \
+#         -DUSE_QT5:BOOL=ON \
 #         -DGRASP_PLUGINS="\
 # CnoidRos;\
 # ConstraintIK;\
@@ -104,12 +107,7 @@ WORKDIR /opt/choreonoid/build
 # SoftFingerStability;\
 # VisionTrigger;\
 # " \
-#         -DINSTALL_DEPENDENCIES:BOOL=TRUE \
-#         -DINSTALL_SDK:BOOL=TRUE \
-#         -DUSE_EXTERNAL_EIGEN:BOOL=TRUE \
-#         -DUSE_EXTERNAL_YAML:BOOL=TRUE \
-#         -DUSE_QT5:BOOL=ON \
 #     .. && \
 #     make
 
-# RUN cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_QT5:BOOL=ON -DUSE_EXTERNAL_EIGEN:BOOL=TRUE -DUSE_EXTERNAL_YAML:BOOL=TRUE -DBUILD_PYTHON_PLUGIN:BOOL=TRUE -DCNOID_ENABLE_GETTEXT:BOOL=TRUE -DINSTALL_DEPENDENCIES:BOOL=TRUE -DINSTALL_SDK:BOOL=TRUE -DBUILD_CORBA_PLUGIN:BOOL=TRUE -DBUILD_GRASP_PCL_PLUGIN:BOOL=ON -DBUILD_GROBOT_PLUGIN:BOOL=TRUE -DBUILD_OPENRTM_PLUGIN:BOOL=TRUE -DENABLE_CORBA:BOOL=TRUE -DGRASP_PLUGINS="CnoidRos;ConstraintIK;GeometryHandler;Grasp;GraspConsumer;GraspDataGen;MotionFile;ObjectPlacePlanner;PCL;PRM;PickAndPlacePlanner;RobotInterface;RtcGraspPathPlan;SoftFingerStability;VisionTrigger;"
+# RUN cmake .. -Wno-dev -DCMAKE_BUILD_TYPE=Release -DBUILD_CORBA_PLUGIN:BOOL=ON -DBUILD_GRASP_PCL_PLUGIN:BOOL=ON -DBUILD_GROBOT_PLUGIN:BOOL=ON -DBUILD_OPENRTM_PLUGIN:BOOL=ON -DBUILD_PYTHON_PLUGIN:BOOL=ON -DCNOID_ENABLE_GETTEXT:BOOL=ON -DENABLE_CORBA:BOOL=ON -DOPENRTM_DIR:PATH=/home/usr -DOpenRTM_DIR:PATH=/home/usr/lib/openrtm-1.1/cmake -DUSE_QT5:BOOL=ON -DGRASP_PLUGINS="CnoidRos;ConstraintIK;GeometryHandler;Grasp;GraspConsumer;GraspDataGen;MotionFile;ObjectPlacePlanner;PCL;PRM;PickAndPlacePlanner;RobotInterface;RtcGraspPathPlan;SoftFingerStability;VisionTrigger;"
