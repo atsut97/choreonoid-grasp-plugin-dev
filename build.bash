@@ -34,12 +34,6 @@ OPTIONS:
   -c, --cnoid-repo
     Specify Choreonoid repository. (Default: ${CNOID_REPO})
 
-  -g, --grasp-repo
-    Specify Grasp Plugin repository. (NOT YET SUPPORTED)
-
-  -G, --grasp-tag
-    Specify Grasp Plugin version. (NOT YET SUPPORTED)
-
   -M, --not-mount
     Do not mount Grasp Plugin directory when running container.
 
@@ -81,8 +75,6 @@ BUILD_IMAGE_SUCCESS=false
 DISTRO=focal
 CNOID_REPO=choreonoid/choreonoid
 CNOID_TAG=master
-GRASP_REPO=atsut97/graspPlugin
-GRASP_TAG=master
 IMAGE_REPO=grasp-plugin-dev
 IMAGE_TAG=latest
 
@@ -93,7 +85,8 @@ DOCKERFILE=
 
 # Variables must be updated after parsing arguments.
 update_vars() {
-  # v1.7.0 -> 1.7
+  # shellcheck disable=SC2001
+  # ex. v1.7.0 -> 1.7
   SHORT_CNOID_TAG="$(echo $CNOID_TAG | sed 's/^v\([0-9.]\+\)\.0/\1/')"
   if [[ $IMAGE_TAG_SPECIFIED == false ]]; then
     IMAGE_TAG=${SHORT_CNOID_TAG}-${DISTRO}
@@ -139,14 +132,6 @@ parse() {
         CNOID_REPO="$2"
         shift 2
         ;;
-      -g|--grasp-repo)
-        GRASP_REPO="$2"
-        shift 2
-        ;;
-      -G|--grasp-tag)
-        GRASP_TAG="$2"
-        shift 2
-        ;;
       -M|--not-mount)
         NOT_MOUNT=true
         shift
@@ -164,7 +149,7 @@ parse() {
         IMAGE_TAG_SPECIFIED=true
         shift 2
         ;;
-      -*|--*)
+      -*)
         echo "error: unknown options $1" >&2
         exit 1
         ;;
@@ -203,7 +188,7 @@ runcmd() {
 
 rename_tmux_window() {
   if [[ -n $(pgrep tmux) ]]; then
-    runcmd tmux rename-window $IMAGE_TAG
+    runcmd tmux rename-window "$IMAGE_TAG"
   fi
 }
 
@@ -211,11 +196,11 @@ build_docker_image() {
   local image=$1
 
   if [[ -f "$DOCKERFILE" ]]; then
-    runcmd docker build --tag $image --file "$DOCKERFILE" \
-           --build-arg CHOREONOID_REPO=$CNOID_REPO \
-           --build-arg CHOREONOID_TAG=$CNOID_TAG \
-           "$script_dir"
-    [ $? -eq 0 ] && BUILD_IMAGE_SUCCESS=true
+    runcmd docker build --tag "$image" --file "$DOCKERFILE" \
+           --build-arg CHOREONOID_REPO="$CNOID_REPO" \
+           --build-arg CHOREONOID_TAG="$CNOID_TAG" \
+           "$script_dir" \
+      && BUILD_IMAGE_SUCCESS=true
   else
     echo "error: No such docker file: $DOCKERFILE" >&2
     return 1
@@ -230,11 +215,11 @@ run_docker_container() {
   local image=$1
   local mount_opt=
 
-  if docker_image_exists $image; then
+  if docker_image_exists "$image"; then
     if [[ $NOT_MOUNT = false ]]; then
       mount_opt='-v '"${script_dir}/graspPlugin":/opt/choreonoid/ext/graspPlugin
     fi
-    runcmd docker run -it $mount_opt $image
+    runcmd docker run -it "$mount_opt" "$image"
   else
     echo "error: No such docker image: $IMAGE" >&2
     return 1
@@ -242,33 +227,34 @@ run_docker_container() {
 }
 
 docker_container_running() {
-  docker ps -q --filter status=running --filter ancestor=$1 --latest
+  docker ps -q --filter status=running --filter ancestor="$1" --latest
 }
 
 exec_docker_container() {
-  runcmd docker exec -it $1 /bin/bash
+  runcmd docker exec -it "$1" /bin/bash
 }
 
 docker_container_exited() {
-  docker ps -q --filter status=exited --filter ancestor=$1 --latest
+  docker ps -q --filter status=exited --filter ancestor="$1" --latest
 }
 
 start_docker_container() {
-  runcmd docker start $1
+  runcmd docker start "$1"
 }
 
 restart_docker_container() {
   local image=$1
-  local running=$(docker_container_running $image)
-  local exited=$(docker_container_exited $image)
+  local running exited
+  running=$(docker_container_running "$image")
+  exited=$(docker_container_exited "$image")
 
   if [[ -n $running ]]; then
-    exec_docker_container $running
+    exec_docker_container "$running"
   elif [[ -n $exited ]]; then
-    start_docker_container $exited
-    exec_docker_container $exited
+    start_docker_container "$exited"
+    exec_docker_container "$exited"
   else
-    run_docker_container $image
+    run_docker_container "$image"
   fi
 }
 
@@ -285,17 +271,17 @@ main() {
 
   # Build docker image.
   if [[ $BUILD_IMAGE == true ]]; then
-    build_docker_image $IMAGE
+    build_docker_image "$IMAGE"
   fi
 
   # Run docker container.
   if [[ $RUN_CONTAINER == true ]]; then
     if [[ $BUILD_IMAGE_SUCCESS == true ]]; then
       # Just when a new docker image is built.
-      run_docker_container $IMAGE
+      run_docker_container "$IMAGE"
     else
       # Otherwise restart a docker container based on the image.
-      restart_docker_container $IMAGE
+      restart_docker_container "$IMAGE"
     fi
   fi
 }
