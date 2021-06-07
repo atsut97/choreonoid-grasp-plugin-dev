@@ -9,10 +9,10 @@ NAME:
   $name
 
 SYNOPSIS:
-  $0 [options] <Distro> <Choreonoid tag>
+  $0 [options] [<Distro>] [<Choreonoid tag>]
 
 DESCRIPTION:
-  Builds Docker image of Grasp Plugin for Choreonoid.
+  Runs a Docker container based on the image of Grasp Plugin.
 
 OPTIONS:
   -h, --help
@@ -21,11 +21,11 @@ OPTIONS:
   -d, --dry-run
     Just print commands.
 
-  -f, --dockerfile
-    Specify Dockerfile.
-
   -c, --cnoid-repo
     Specify Choreonoid repository. (Default: ${CNOID_REPO})
+
+  -M, --not-mount
+    Do not mount Grasp Plugin directory when running container.
 
   -i, --image-name
     Specify Docker image repository name. (Default: ${IMAGE_REPO})
@@ -54,8 +54,8 @@ EOF
 
 # Option flags.
 DRY_RUN=false
-DOCKRFILE_SPECIFIED=false
 IMAGE_TAG_SPECIFIED=false
+NOT_MOUNT=false
 
 # Default values.
 DISTRO=focal
@@ -67,7 +67,6 @@ IMAGE_TAG=latest
 # Variables made from user-specified values.
 SHORT_CNOID_TAG=
 IMAGE=
-DOCKERFILE=
 
 # Variables must be updated after parsing arguments.
 update_vars() {
@@ -78,9 +77,6 @@ update_vars() {
     IMAGE_TAG=${SHORT_CNOID_TAG}-${DISTRO}
   fi
   IMAGE=${IMAGE_REPO}:${IMAGE_TAG}
-  if [[ $DOCKRFILE_SPECIFIED == false ]]; then
-    DOCKERFILE="${script_dir}/${DISTRO}/Dockerfile"
-  fi
 }
 
 script="$(realpath "$0")"
@@ -99,14 +95,13 @@ parse() {
         DRY_RUN=true
         shift
         ;;
-      -f|--dockerfile)
-        DOCKRFILE_SPECIFIED=true
-        DOCKERFILE="$2"
-        shift 2
-        ;;
       -c|--cnoid-repo)
         CNOID_REPO="$2"
         shift 2
+        ;;
+      -M|--not-mount)
+        NOT_MOUNT=true
+        shift
         ;;
       -i|--image-name)
         IMAGE_REPO="${2%:*}"
@@ -158,17 +153,73 @@ runcmd() {
   return $?
 }
 
-build_docker_image() {
-  local image=$1
-
-  if [[ -f "$DOCKERFILE" ]]; then
-    runcmd docker build --tag "$image" --file "$DOCKERFILE" \
-           --build-arg CHOREONOID_REPO="$CNOID_REPO" \
-           --build-arg CHOREONOID_TAG="$CNOID_TAG" \
-           "$script_dir"
+is_tmux_running() {
+  if [[ -n $(pgrep tmux) ]]; then
+    return 0
   else
-    echo "error: No such docker file: $DOCKERFILE" >&2
     return 1
+  fi
+}
+
+rename_tmux_window() {
+  local name=$1
+  if is_tmux_running; then
+    runcmd tmux rename-window "$name"
+  fi
+}
+
+docker_image_exists() {
+  if [[ -n $(docker images -q "$1") ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+run_docker_container() {
+  local image=$1
+  local mount_opt=
+
+  if docker_image_exists "$image"; then
+    if [[ $NOT_MOUNT = false ]]; then
+      mount_opt='-v '"${script_dir}/graspPlugin":/opt/choreonoid/ext/graspPlugin
+    fi
+    runcmd docker run -it "$mount_opt" "$image"
+  else
+    echo "error: No such docker image: $IMAGE" >&2
+    return 1
+  fi
+}
+
+docker_container_running() {
+  docker ps -q --filter status=running --filter ancestor="$1" --latest
+}
+
+exec_docker_container() {
+  runcmd docker exec -it "$1" /bin/bash
+}
+
+docker_container_exited() {
+  docker ps -q --filter status=exited --filter ancestor="$1" --latest
+}
+
+start_docker_container() {
+  runcmd docker start "$1"
+}
+
+restart_docker_container() {
+  local image=$1
+  local running exited
+  running=$(docker_container_running "$image")
+  exited=$(docker_container_exited "$image")
+
+  if [[ -n $running ]]; then
+    exec_docker_container "$running"
+  elif [[ -n $exited ]]; then
+    start_docker_container "$exited"
+    exec_docker_container "$exited"
+  else
+    run_docker_container "$image"
   fi
 }
 
@@ -180,8 +231,19 @@ main() {
   # Handle arguments.
   handle_args
 
-  # Build docker image.
-  build_docker_image "$IMAGE"
+  # Rename tmux window name if running.
+  rename_tmux_window "$IMAGE_TAG"
+
+  # Run docker container.
+  if [[ $RUN_CONTAINER == true ]]; then
+    if [[ $BUILD_IMAGE_SUCCESS == true ]]; then
+      # Just when a new docker image is built.
+      run_docker_container "$IMAGE"
+    else
+      # Otherwise restart a docker container based on the image.
+      restart_docker_container "$IMAGE"
+    fi
+  fi
 }
 
 if [[ "${BASH_SOURCE[0]}" -ef "$0" ]]; then
