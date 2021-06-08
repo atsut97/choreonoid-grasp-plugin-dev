@@ -59,18 +59,23 @@ RUN cd /opt && \
     make install && \
     make clean
 
-# Define variables.
+# Define variables used when building.
 ARG CHOREONOID_REPO=choreonoid/choreonoid
 ARG CHOREONOID_TAG=master
-# ARG GRASP_PLUGIN_REPO=atsut97/graspPlugin
-# ARG GRASP_PLUGIN_TAG=master
+# The following variables may not be used.
+ARG GRASP_PLUGIN_REPO=kensuke-harada/graspPlugin
+ARG GRASP_PLUGIN_TAG=master
 
 # Download Choreonoid source code.
 RUN cd /opt && \
     git clone --depth 1 --branch ${CHOREONOID_TAG} git://github.com/${CHOREONOID_REPO}.git && \
     mkdir -p /opt/choreonoid/build
 
-WORKDIR /opt/choreonoid/build
+# Setup entrypoint.
+COPY docker-entrypoint.sh /
+
+ENTRYPOINT [ "/docker-entrypoint.sh" ]
+CMD [ "/bin/bash" ]
 
 # Build Choreonoid.
 # RUN cd /opt && \
