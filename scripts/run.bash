@@ -21,9 +21,6 @@ OPTIONS:
   -d, --dry-run
     Just print commands.
 
-  -c, --cnoid-repo
-    Specify Choreonoid repository. (Default: ${CNOID_REPO})
-
   -M, --not-mount
     Do not mount Grasp Plugin directory when running container.
 
@@ -59,7 +56,6 @@ NOT_MOUNT=false
 
 # Default values.
 DISTRO=focal
-CNOID_REPO=choreonoid/choreonoid
 CNOID_TAG=master
 IMAGE_REPO=grasp-plugin-dev
 IMAGE_TAG=latest
@@ -94,10 +90,6 @@ parse() {
       -d|--dry-run)
         DRY_RUN=true
         shift
-        ;;
-      -c|--cnoid-repo)
-        CNOID_REPO="$2"
-        shift 2
         ;;
       -M|--not-mount)
         NOT_MOUNT=true
