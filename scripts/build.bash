@@ -55,6 +55,11 @@ EXAMPLES:
 EOF
 }
 
+script="$(realpath "$0")"
+script_dir="$(dirname "$script")"
+root_dir="$(dirname "$script_dir")"
+name="$(basename "$script")"
+
 # Option flags.
 DRY_RUN=false
 DOCKRFILE_SPECIFIED=false
@@ -73,11 +78,6 @@ SHORT_CNOID_TAG=
 IMAGE=
 DOCKERFILE=
 BUILD_CONTEXT=
-
-script="$(realpath "$0")"
-script_dir="$(dirname "$script")"
-root_dir="$(dirname "$script_dir")"
-name="$(basename "$script")"
 
 args=()
 parse() {
