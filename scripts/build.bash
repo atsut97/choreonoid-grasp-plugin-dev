@@ -24,6 +24,9 @@ OPTIONS:
   -f, --dockerfile
     Specify Dockerfile.
 
+  -b, --build-context
+    Specify a directory on local machine as build context.
+
   -c, --cnoid-repo
     Specify Choreonoid repository. (Default: ${CNOID_REPO})
 
@@ -55,6 +58,7 @@ EOF
 # Option flags.
 DRY_RUN=false
 DOCKRFILE_SPECIFIED=false
+BUILD_CONTEXT_SPECIFIED=false
 IMAGE_TAG_SPECIFIED=false
 
 # Default values.
@@ -68,6 +72,7 @@ IMAGE_TAG=latest
 SHORT_CNOID_TAG=
 IMAGE=
 DOCKERFILE=
+BUILD_CONTEXT=
 
 script="$(realpath "$0")"
 script_dir="$(dirname "$script")"
@@ -89,6 +94,11 @@ parse() {
       -f|--dockerfile)
         DOCKRFILE_SPECIFIED=true
         DOCKERFILE="$2"
+        shift 2
+        ;;
+      -b|--build-context)
+        BUILD_CONTEXT_SPECIFIED=true
+        BUILD_CONTEXT="$2"
         shift 2
         ;;
       -c|--cnoid-repo)
@@ -146,9 +156,12 @@ handle_args() {
   fi
   IMAGE=${IMAGE_REPO}:${IMAGE_TAG}
 
-  # Get Dockerfile.
+  # Get Dockerfile and build context.
   if [[ $DOCKRFILE_SPECIFIED == false ]]; then
     DOCKERFILE="${root_dir}/${DISTRO}/Dockerfile"
+  fi
+  if [[ $BUILD_CONTEXT_SPECIFIED == false ]]; then
+    BUILD_CONTEXT="${DOCKERFILE%/*}"
   fi
 }
 
@@ -168,7 +181,7 @@ build_docker_image() {
     runcmd docker build --tag "$image" --file "$DOCKERFILE" \
            --build-arg CHOREONOID_REPO="$CNOID_REPO" \
            --build-arg CHOREONOID_TAG="$CNOID_TAG" \
-           "$root_dir"
+           "$BUILD_CONTEXT"
   else
     echo "error: No such docker file: $DOCKERFILE" >&2
     return 1
