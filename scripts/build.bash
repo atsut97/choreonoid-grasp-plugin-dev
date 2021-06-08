@@ -69,22 +69,9 @@ SHORT_CNOID_TAG=
 IMAGE=
 DOCKERFILE=
 
-# Variables must be updated after parsing arguments.
-update_vars() {
-  # shellcheck disable=SC2001
-  # ex. v1.7.0 -> 1.7
-  SHORT_CNOID_TAG="$(echo $CNOID_TAG | sed 's/^v\([0-9.]\+\)\.0/\1/')"
-  if [[ $IMAGE_TAG_SPECIFIED == false ]]; then
-    IMAGE_TAG=${SHORT_CNOID_TAG}-${DISTRO}
-  fi
-  IMAGE=${IMAGE_REPO}:${IMAGE_TAG}
-  if [[ $DOCKRFILE_SPECIFIED == false ]]; then
-    DOCKERFILE="${script_dir}/${DISTRO}/Dockerfile"
-  fi
-}
-
 script="$(realpath "$0")"
 script_dir="$(dirname "$script")"
+root_dir="$(dirname "$script_dir")"
 name="$(basename "$script")"
 
 args=()
@@ -110,7 +97,7 @@ parse() {
         ;;
       -i|--image-name)
         IMAGE_REPO="${2%:*}"
-        if [[ -n "${2##*:}" ]]; then
+        if [[ $2 == *:* ]]; then
           IMAGE_TAG="${2##*:}"
           IMAGE_TAG_SPECIFIED=true
         fi
@@ -145,8 +132,24 @@ handle_args() {
     echo "error: unknown distro: ${args[0]}" >&2
     exit 1
   fi
+
+  # Get Choreonoid tag.
+  # Ex. CNOID_TAG=v1.7.0
+  #     SHORT_CNOID_TAG=1.7
   CNOID_TAG="${args[1]}"
-  update_vars
+  # shellcheck disable=SC2001
+  SHORT_CNOID_TAG="$(echo "$CNOID_TAG" | sed 's/^v\([0-9.]\+\)\.0/\1/')"
+
+  # Determine image name and its tag.
+  if [[ $IMAGE_TAG_SPECIFIED == false ]]; then
+    IMAGE_TAG=${SHORT_CNOID_TAG}-${DISTRO}
+  fi
+  IMAGE=${IMAGE_REPO}:${IMAGE_TAG}
+
+  # Get Dockerfile.
+  if [[ $DOCKRFILE_SPECIFIED == false ]]; then
+    DOCKERFILE="${root_dir}/${DISTRO}/Dockerfile"
+  fi
 }
 
 runcmd() {
@@ -165,7 +168,7 @@ build_docker_image() {
     runcmd docker build --tag "$image" --file "$DOCKERFILE" \
            --build-arg CHOREONOID_REPO="$CNOID_REPO" \
            --build-arg CHOREONOID_TAG="$CNOID_TAG" \
-           "$script_dir"
+           "$root_dir"
   else
     echo "error: No such docker file: $DOCKERFILE" >&2
     return 1
