@@ -21,12 +21,12 @@ build_grasp_plugin() {
   cmake . --build
 }
 
-if [[ $1 == build ]]; then
+if [ "$1" = build ]; then
   shift
   build_grasp_plugin
 fi
 
-if [[ $# -eq 0 ]]; then
+if [ $# -eq 0 ]; then
   exec /bin/bash
 else
   exec "$@"
