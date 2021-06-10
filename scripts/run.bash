@@ -21,14 +21,34 @@ OPTIONS:
   -d, --dry-run
     Just print commands.
 
-  -M, --not-mount
-    Do not mount Grasp Plugin directory when running container.
+  -m, --mount
+    Specify whether mount directory on host machine into container or
+    not. This accepts optional argument true or false.
+    (Default: ${DO_MOUNT})
+
+  -g, --glusp-plugin
+    Directory path that contains sources of grasp plugin to mount into
+    container. This value is ignored when supplying --mount=false.
+    (Default: ${GRASP_PLUGIN_PATH})
 
   -i, --image-name
     Specify Docker image repository name. (Default: ${IMAGE_REPO})
 
   -t, --image-tag
     Specify Docker image tag.
+
+  -c, --container
+    Specify Docker container ID or name.
+
+  -n, --new
+    Run a new container based on the specified image.
+
+  -a, --args
+    Arguments that are passed to the entrypoint script in the
+    container.
+
+  -l, --list
+    List containers that are running or exited.
 
   <Distro>
     Ubuntu distro codename. Choose among xenial, bionic and focal.
@@ -37,25 +57,40 @@ OPTIONS:
     Specify Choreonoid released version.
 
 EXAMPLES:
-  1. Build Choreonoid with Grasp Plugin on Ubuntu 20.04.
-        \$ $0 focal v1.7.0
+  1. Run a new container that includes Choreonoid v1.7.0 with Grasp
+     Plugin on Ubuntu 20.04 and execute build commands.
+        \$ $0 --new focal v1.7.0 --args build
 
-  2. Build Choreonoid ver. 1.5.0 on Ubuntu 16.04 and exits without
-     running a container.
-        \$ $0 --build-only xenial v1.5.0
+  2. Run the latest exited container based on the image that includes
+     specific version of Choreonid and Grasp plugin.
+        \$ $0 xenial v1.5.0
 
-  3. Run a container already built.
-        \$ $0 --run-only xenial v1.6.0
+  3. List containers that are running aor exited.
+        \$ $0 --list
+
+  4. Run a new container whose image is the latest.
+        \$ $0 --new
+
+  5. Run the latest exited container. When none of such contaniers is
+     available, create a new one.
+        \$ $0
 EOF
 }
+
+script="$(realpath "$0")"
+script_dir="$(dirname "$script")"
+root_dir="$(dirname "$script_dir")"
+name="$(basename "$script")"
 
 # Option flags.
 DRY_RUN=false
 IMAGE_TAG_SPECIFIED=false
-NOT_MOUNT=false
+DO_MOUNT=true
+GRASP_PLUGIN_PATH="${root_dir}/graspPlugin"
+RUN_NEW_CONTAINER=false
 
 # Default values.
-DISTRO=focal
+DISTRO=
 CNOID_TAG=master
 IMAGE_REPO=grasp-plugin-dev
 IMAGE_TAG=latest
@@ -63,21 +98,8 @@ IMAGE_TAG=latest
 # Variables made from user-specified values.
 SHORT_CNOID_TAG=
 IMAGE=
-
-# Variables must be updated after parsing arguments.
-update_vars() {
-  # shellcheck disable=SC2001
-  # ex. v1.7.0 -> 1.7
-  SHORT_CNOID_TAG="$(echo $CNOID_TAG | sed 's/^v\([0-9.]\+\)\.0/\1/')"
-  if [[ $IMAGE_TAG_SPECIFIED == false ]]; then
-    IMAGE_TAG=${SHORT_CNOID_TAG}-${DISTRO}
-  fi
-  IMAGE=${IMAGE_REPO}:${IMAGE_TAG}
-}
-
-script="$(realpath "$0")"
-script_dir="$(dirname "$script")"
-name="$(basename "$script")"
+CONTAINER=
+RUN_ARGS=()
 
 args=()
 parse() {
@@ -91,13 +113,25 @@ parse() {
         DRY_RUN=true
         shift
         ;;
-      -M|--not-mount)
-        NOT_MOUNT=true
+      -m|--mount*)
+        if [[ "$1" == -m || "$1" == --mount ]]; then
+          DO_MOUNT=true
+          if [[ "$2" == true || "$2" == false ]]; then
+            DO_MOUNT="$2"
+            shift
+          fi
+        elif [[ "$1" == --mount=* ]]; then
+          DO_MOUNT="${1#*=}"
+        fi
         shift
+        ;;
+      -g|--grasp-plugin)
+        GRASP_PLUGIN_PATH="$2"
+        shift 2
         ;;
       -i|--image-name)
         IMAGE_REPO="${2%:*}"
-        if [[ -n "${2##*:}" ]]; then
+        if [[ $2 == *:* ]]; then
           IMAGE_TAG="${2##*:}"
           IMAGE_TAG_SPECIFIED=true
         fi
@@ -108,7 +142,38 @@ parse() {
         IMAGE_TAG_SPECIFIED=true
         shift 2
         ;;
-      -*)
+      -c|--container)
+        CONTAINER="$2"
+        shift 2
+        ;;
+      -n|--new)
+        RUN_NEW_CONTAINER=true
+        shift
+        ;;
+      -l|--list)
+        echo list_containers
+        exit 0
+        ;;
+      -a|--args)
+        shift
+        while (( "$#" )); do
+          case "$1" in
+            --|-?*)
+              break
+              ;;
+            *)
+              RUN_ARGS+=("$1")
+              shift
+              ;;
+          esac
+        done
+        ;;
+      --)
+        shift
+        args+=("$@")
+        shift "$#"
+        ;;
+      -?*)
         echo "error: unknown options $1" >&2
         exit 1
         ;;
@@ -121,19 +186,28 @@ parse() {
 }
 
 handle_args() {
-  # Handle exceptions and set user-specified values.
-  if [[ ${#args[@]} -lt 2 ]]; then
-    echo "error: requires at least 2 arguments." >&2
+  # Check specified distro name. If nothing specified keep it empty.
+  DISTRO="${args[0]}"
+  if [[ -n $DISTRO && ! ":xenial:bionic:focal:*:" == *":${DISTRO}:"* ]]; then
+    echo "error: unknown distro: $DISTRO" >&2
     exit 1
   fi
-  if [[ ":xenial:bionic:focal:" == *":${args[0]}:"* ]]; then
-    DISTRO="${args[0]}"
-  else
-    echo "error: unknown distro: ${args[0]}" >&2
-    exit 1
-  fi
+
+  # Get Choreonoid tag. If nothing given keep it empty.
+  # Ex. CNOID_TAG=v1.7.0
+  #     SHORT_CNOID_TAG=1.7
   CNOID_TAG="${args[1]}"
-  update_vars
+  # shellcheck disable=SC2001
+  SHORT_CNOID_TAG="$(echo "$CNOID_TAG" | sed 's/^v\([0-9.]\+\)\.0/\1/')"
+
+  # Determine image tag reference for filtering.
+  if [[ $IMAGE_TAG_SPECIFIED == false ]]; then
+    if [[ -z $DISTRO || ("$DISTRO" == "*" && -z $CNOID_TAG) ]]; then
+      IMAGE_TAG=
+    else
+      IMAGE_TAG="${SHORT_CNOID_TAG:-*}-${DISTRO}"
+    fi
+  fi
 }
 
 runcmd() {
@@ -145,7 +219,16 @@ runcmd() {
   return $?
 }
 
-is_tmux_running() {
+abort() {
+  echo >&2 "$@"
+  if [[ $DRY_RUN == true ]]; then
+    exit 0
+  else
+    exit 1
+  fi
+}
+
+tmux_is_running() {
   if [[ -n $(pgrep tmux) ]]; then
     return 0
   else
@@ -153,66 +236,266 @@ is_tmux_running() {
   fi
 }
 
-rename_tmux_window() {
+tmux_rename_window() {
   local name=$1
-  if is_tmux_running; then
+  if tmux_is_running; then
     runcmd tmux rename-window "$name"
   fi
 }
 
-docker_image_exists() {
-  if [[ -n $(docker images -q "$1") ]]; then
+# Returns container's short ID if found, otherwise returns an empty
+# string.
+docker_container_get_id() {
+  local container=$1
+  local id
+
+  if [[ $# -eq 0 ]]; then
+    abort "docker_get_container_id: requires at least 1 argument"
+  fi
+
+  # Try to find by container name.
+  id=$(docker ps --all --filter name=^/"${container}"\$)
+  if [[ -z "$id" ]]; then
+    # Try to find by container ID.
+    id=$(docker ps --all --filter id="${container}")
+  fi
+  echo "$id"
+}
+
+docker_container_exists() {
+  if [[ -n $(docker_get_container_id "$1") ]]; then
     return 0
   else
     return 1
   fi
 }
 
-run_docker_container() {
-  local image=$1
-  local mount_opt=
+docker_container_get_status() {
+  local container=$1
+  local id
 
-  if docker_image_exists "$image"; then
-    if [[ $NOT_MOUNT = false ]]; then
-      mount_opt='-v '"${script_dir}/graspPlugin":/opt/choreonoid/ext/graspPlugin
-    fi
-    runcmd docker run -it "$mount_opt" "$image"
+  if [[ $# -eq 0 ]]; then
+    abort "docker_container_get_status: requires at least 1 argument"
+  fi
+  if ! docker_container_exists "$container"; then
+    abort "docker_container_get_status: no such container: $container"
+  fi
+
+  id=$(docker_get_container_id "$container")
+  docker container inspect --format='{{.State.Status}}' "$id"
+}
+
+docker_container_is_running() {
+  local container=$1
+  local id
+
+  if [[ $# -eq 0 ]]; then
+    abort "docker_container_is_running: requires at least 1 argument"
+  fi
+  if ! docker_container_exists "$container"; then
+    abort "docker_container_is_running: no such container: $container"
+  fi
+
+  if [[ $(docker_container_get_status "$container") == running ]]; then
+    return 0
   else
-    echo "error: No such docker image: $IMAGE" >&2
     return 1
   fi
 }
 
-docker_container_running() {
-  docker ps -q --filter status=running --filter ancestor="$1" --latest
-}
+docker_container_is_exited() {
+  local container=$1
+  local id
 
-exec_docker_container() {
-  runcmd docker exec -it "$1" /bin/bash
-}
-
-docker_container_exited() {
-  docker ps -q --filter status=exited --filter ancestor="$1" --latest
-}
-
-start_docker_container() {
-  runcmd docker start "$1"
-}
-
-restart_docker_container() {
-  local image=$1
-  local running exited
-  running=$(docker_container_running "$image")
-  exited=$(docker_container_exited "$image")
-
-  if [[ -n $running ]]; then
-    exec_docker_container "$running"
-  elif [[ -n $exited ]]; then
-    start_docker_container "$exited"
-    exec_docker_container "$exited"
-  else
-    run_docker_container "$image"
+  if [[ $# -eq 0 ]]; then
+    abort "docker_container_is_exited: requires at least 1 argument"
   fi
+  if ! docker_container_exists "$container"; then
+    abort "docker_container_is_exited: no such container: $container"
+  fi
+
+  if [[ $(docker_container_get_status "$container") == exited ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+docker_exec_container() {
+  local container=$1
+
+  runcmd docker exec -it "$1" /bin/bash >/dev/null
+}
+
+docker_start_container() {
+  local container=$1
+  local status
+  local started
+
+  runcmd docker start "$container" >/dev/null
+  # Wait until the container has started.
+  started=false
+  # shellcheck disable=SC2034
+  for i in {1..3}; do
+    status=$(docker_container_get_status "$container")
+    if [[ $status == running || $DRY_RUN == true ]]; then
+      started=true
+      break
+    fi
+    sleep 1
+  done
+  if [[ $started == false ]]; then
+    abort "docker_start_container: cannot start container: $container"
+  fi
+}
+
+# Returns a string which consists of the most likely image repository
+# and tag, for example, grasp-plugin-dev:1.7-focal. What we mean by
+# "the most likely" is that the most recently created image is chosen
+# among those match the given repository name and optionally the given
+# tag.
+docker_image_estimate_name() {
+  local repo=$1
+  local tag=$2
+  local reference
+  local image_id
+  local output
+
+  # Create reference string from arguments.
+  reference="${repo}${tag:+:}${tag}"
+  image_id=$(docker images --quiet --filter "reference=$reference" | head -n 1)
+  # Get a string whose format is repository:tag.
+  if [[ -n $image_id ]]; then
+    output=$(docker image inspect "$image_id" --format "{{index .RepoTags 0}}")
+  fi
+  # Just echo the variable is redundant, I know. This is for ease of
+  # debugging.
+  echo "$output"
+}
+
+docker_image_exists() {
+  if [[ -n $(docker images --quiet "$1") ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+docker_image_get_container_id() {
+  local image=$1
+  local id
+
+  if [[ $# -eq 0 ]]; then
+    abort "docker_image_get_container_id: requires at least 1 argument"
+  fi
+  if ! docker_image_exists "$image"; then
+    abort "docker_image_get_container_id: no such image: $image"
+  fi
+
+  # Try to find container based on the given image.
+  id=$(docker ps --all --quiet --filter ancestor="$image" --latest)
+  echo "$id"
+}
+
+docker_run_container() {
+  local image=$1
+  local opts=()
+
+  opts+=("-it")
+  if docker_image_exists "$image"; then
+    if [[ $DO_MOUNT == true ]]; then
+      opts+=("-v" "${GRASP_PLUGIN_PATH}:/opt/choreonoid/ext/graspPlugin")
+    fi
+    runcmd docker run "${opts[@]}" >/dev/null
+  else
+    abort "docker_run_container: no such docker image: $image"
+  fi
+}
+
+docker_resume_container() {
+  local container=$1
+
+  if [[ $# -eq 0 ]]; then
+    abort "docker_resume_container: requires at least 1 argument"
+  fi
+  if ! docker_container_exists "$container"; then
+    abort "docker_resume_container: no such container: $container"
+  fi
+
+  if docker_container_is_exited "$container"; then
+    docker_start_container "$container"
+  fi
+  if docker_container_is_running "$container"; then
+    docker_exec_container "$container"
+  else
+    abort "docker_resume_container: cannot handle the current status: $(docker_container_get_status)"
+  fi
+}
+
+run() {
+  local container
+  local image
+
+  if [[ -n "$CONTAINER" ]]; then
+    # When a specific container is providied with the '--container'
+    # option, resume the container.
+    docker_resume_container "$CONTAINER"
+  else
+    # Estimate the most likely Docker image to be run from the
+    # provided arguments and options such as '--image-name' and
+    # '--image-tag'.
+    image=$(docker_image_estimate_name "$IMAGE_REPO" "$IMAGE_TAG")
+    if [[ -n "$image" ]]; then
+      if [[ $RUN_NEW_CONTAINER == true ]]; then
+        # When the option '--new' is specified, run a new container
+        # based on the estimated image.
+        docker_run_container "$image"
+      else
+        # Look for a container running or exited based on the
+        # estimated image.
+        container=$(docker_image_get_container_id "$image")
+        if [[ -n "$container" ]]; then
+          # If a container based on the estimated image exists on the
+          # host machine, try to resume the container.
+          docker_resume_container "$container"
+        else
+          # If no container based on the estimated image is found, run
+          # a new container based on that.
+          docker_run_container "$image"
+        fi
+      fi
+    else
+      # As estimating the most likely Docker image is failed, abort
+      # this script.
+      abort "run: Could not find any Docker image available. Please specify a specific image name with the '--image-name' option."
+    fi
+  fi
+}
+
+debug() {
+  echo "======="
+  echo "script=$script"
+  echo "script_dir=$script_dir"
+  echo "root_dir=$root_dir"
+  echo "name=$name"
+  echo "--"
+  echo "DRY_RUN=$DRY_RUN"
+  echo "IMAGE_TAG_SPECIFIED=$IMAGE_TAG_SPECIFIED"
+  echo "DO_MOUNT=$DO_MOUNT"
+  echo "GRASP_PLUGIN_PATH=$GRASP_PLUGIN_PATH"
+  echo "RUN_NEW_CONTAINER=$RUN_NEW_CONTAINER"
+  echo "--"
+  echo "DISTRO=$DISTRO"
+  echo "CNOID_TAG=$CNOID_TAG"
+  echo "IMAGE_REPO=$IMAGE_REPO"
+  echo "IMAGE_TAG=$IMAGE_TAG"
+  echo "--"
+  echo "SHORT_CNOID_TAG=$SHORT_CNOID_TAG"
+  echo "IMAGE=$IMAGE"
+  echo "CONTAINER=$CONTAINER"
+  echo "RUN_ARGS[${#RUN_ARGS[@]}]=${RUN_ARGS[*]}"
+  echo "args[${#args[@]}]=${args[*]}"
+  echo "--"
 }
 
 # Main processes.
@@ -223,19 +506,8 @@ main() {
   # Handle arguments.
   handle_args
 
-  # Rename tmux window name if running.
-  rename_tmux_window "$IMAGE_TAG"
-
-  # Run docker container.
-  if [[ $RUN_CONTAINER == true ]]; then
-    if [[ $BUILD_IMAGE_SUCCESS == true ]]; then
-      # Just when a new docker image is built.
-      run_docker_container "$IMAGE"
-    else
-      # Otherwise restart a docker container based on the image.
-      restart_docker_container "$IMAGE"
-    fi
-  fi
+  # Run the main process.
+  run
 }
 
 if [[ "${BASH_SOURCE[0]}" -ef "$0" ]]; then
