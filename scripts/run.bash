@@ -48,7 +48,7 @@ OPTIONS:
     container.
 
   -l, --list
-    List containers that are running or exited.
+    List containers that are running or stopped and built images.
 
   <Distro>
     Ubuntu distro codename. Choose among xenial, bionic and focal.
@@ -88,6 +88,7 @@ IMAGE_TAG_SPECIFIED=false
 DO_MOUNT=true
 GRASP_PLUGIN_PATH="${root_dir}/graspPlugin"
 RUN_NEW_CONTAINER=false
+SHOW_LIST=false
 
 # Default values.
 DISTRO=
@@ -151,8 +152,8 @@ parse() {
         shift
         ;;
       -l|--list)
-        echo list_containers
-        exit 0
+        SHOW_LIST=true
+        shift
         ;;
       -a|--args)
         shift
@@ -472,6 +473,26 @@ run() {
   fi
 }
 
+list() {
+  local reference
+  local candidates
+  local filters
+
+  reference="${IMAGE_REPO}${IMAGE_TAG:+:}${IMAGE_TAG}"
+  candidates=()
+  readarray -t candidates < <(docker images --quiet --filter "reference=$reference")
+
+  # Show running and stopped containers based on possible images.
+  filters=()
+  for i in "${candidates[@]}"; do
+    filters+=("--filter" "ancestor=$i")
+  done
+  docker ps --all "${filters[@]}"
+  echo "--"
+  # Show top level images filtered by provided arguments and options.
+  docker images --filter "reference=$reference"
+}
+
 debug() {
   echo "======="
   echo "script=$script"
@@ -506,8 +527,13 @@ main() {
   # Handle arguments.
   handle_args
 
-  # Run the main process.
-  run
+  if [[ $SHOW_LIST == true ]]; then
+    # Show list of containers and images.
+    list
+  else
+    # Run the main process.
+    run
+  fi
 }
 
 if [[ "${BASH_SOURCE[0]}" -ef "$0" ]]; then
