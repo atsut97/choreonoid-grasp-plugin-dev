@@ -227,9 +227,17 @@ _msg_header() {
   fi
 }
 
-abort() {
+error() {
   echo >&2 "$(_msg_header error)" "$@"
+}
+
+abort() {
+  error "$@"
   [[ $DRY_RUN == true ]] && exit 0 || exit 1
+}
+
+warning() {
+  echo >&2 "$(_msg_header warning)" "$@"
 }
 
 verbose() {
