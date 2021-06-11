@@ -89,18 +89,18 @@ name="$(basename "$script")"
 DRY_RUN=false
 IMAGE_TAG_SPECIFIED=false
 DO_MOUNT=true
-GRASP_PLUGIN_PATH="${root_dir}/graspPlugin"
 RUN_NEW_CONTAINER=false
 SHOW_LIST=false
 VERBOSE=false
 
 # Default values.
-DISTRO=
 CNOID_TAG=master
+GRASP_PLUGIN_PATH="${root_dir}/graspPlugin"
 IMAGE_REPO=grasp-plugin-dev
 IMAGE_TAG=latest
 
 # Variables made from user-specified values.
+DISTRO=
 SHORT_CNOID_TAG=
 IMAGE=
 CONTAINER=
