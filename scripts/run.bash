@@ -203,13 +203,33 @@ runcmd() {
   return $?
 }
 
-abort() {
-  echo >&2 "$@"
-  if [[ $DRY_RUN == true ]]; then
-    exit 0
+_msg_header() {
+  # This internal function is designed to be called inside debbuging
+  # functions such as abort() and verbose().
+  local msgtype=${1:-note}
+  local sourcefile
+  local sourcedir
+  local prefix
+
+  if [[ $VERBOSE == false ]]; then
+    echo "${msgtype}:"
   else
-    exit 1
+    sourcedir="${BASH_SOURCE[0]%/*}"
+    if [[ ${#sourcedir} -gt 16 ]]; then
+      prefix="${sourcedir:0:6}"
+      prefix="${prefix}...${sourcedir:(-6)}"
+    else
+      prefix="$sourcedir"
+    fi
+    [[ -n "$prefix" ]] && prefix="${prefix}/"
+    sourcefile="${prefix}${BASH_SOURCE[0]##*/}"
+    echo "${sourcefile}:${BASH_LINENO[1]}: in ${FUNCNAME[2]}(): ${msgtype}:"
   fi
+}
+
+abort() {
+  echo >&2 "$(_msg_header error)" "$@"
+  [[ $DRY_RUN == true ]] && exit 0 || exit 1
 }
 
 verbose() {
@@ -236,8 +256,7 @@ handle_args() {
   # Check specified distro name. If nothing specified keep it empty.
   DISTRO="${args[0]}"
   if [[ -n $DISTRO && ! ":xenial:bionic:focal:*:" == *":${DISTRO}:"* ]]; then
-    echo "error: unknown distro: $DISTRO" >&2
-    exit 1
+    abort "Unknown distro: $DISTRO"
   fi
 
   # Get Choreonoid tag. If nothing given keep it empty.
