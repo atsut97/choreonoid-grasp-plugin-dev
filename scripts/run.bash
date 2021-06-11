@@ -190,31 +190,6 @@ parse() {
   done
 }
 
-handle_args() {
-  # Check specified distro name. If nothing specified keep it empty.
-  DISTRO="${args[0]}"
-  if [[ -n $DISTRO && ! ":xenial:bionic:focal:*:" == *":${DISTRO}:"* ]]; then
-    echo "error: unknown distro: $DISTRO" >&2
-    exit 1
-  fi
-
-  # Get Choreonoid tag. If nothing given keep it empty.
-  # Ex. CNOID_TAG=v1.7.0
-  #     SHORT_CNOID_TAG=1.7
-  CNOID_TAG="${args[1]}"
-  # shellcheck disable=SC2001
-  SHORT_CNOID_TAG="$(echo "$CNOID_TAG" | sed 's/^v\([0-9.]\+\)\.0/\1/')"
-
-  # Determine image tag reference for filtering.
-  if [[ $IMAGE_TAG_SPECIFIED == false ]]; then
-    if [[ -z $DISTRO || ("$DISTRO" == "*" && -z $CNOID_TAG) ]]; then
-      IMAGE_TAG=
-    else
-      IMAGE_TAG="${SHORT_CNOID_TAG:-*}-${DISTRO}"
-    fi
-  fi
-}
-
 runcmd() {
   if [[ $DRY_RUN == true ]]; then
     echo "$@"
@@ -251,6 +226,31 @@ verbose() {
   fi
   header="${prefix}${filename}:${BASH_LINENO[0]}:in ${FUNCNAME[1]}():"
   echo >&2 "$header" "$@"
+}
+
+handle_args() {
+  # Check specified distro name. If nothing specified keep it empty.
+  DISTRO="${args[0]}"
+  if [[ -n $DISTRO && ! ":xenial:bionic:focal:*:" == *":${DISTRO}:"* ]]; then
+    echo "error: unknown distro: $DISTRO" >&2
+    exit 1
+  fi
+
+  # Get Choreonoid tag. If nothing given keep it empty.
+  # Ex. CNOID_TAG=v1.7.0
+  #     SHORT_CNOID_TAG=1.7
+  CNOID_TAG="${args[1]}"
+  # shellcheck disable=SC2001
+  SHORT_CNOID_TAG="$(echo "$CNOID_TAG" | sed 's/^v\([0-9.]\+\)\.0/\1/')"
+
+  # Determine image tag reference for filtering.
+  if [[ $IMAGE_TAG_SPECIFIED == false ]]; then
+    if [[ -z $DISTRO || ("$DISTRO" == "*" && -z $CNOID_TAG) ]]; then
+      IMAGE_TAG=
+    else
+      IMAGE_TAG="${SHORT_CNOID_TAG:-*}-${DISTRO}"
+    fi
+  fi
 }
 
 tmux_is_running() {
