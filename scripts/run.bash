@@ -134,7 +134,7 @@ parse() {
         GRASP_PLUGIN_PATH="$2"
         shift 2
         ;;
-      -i|--image-name)
+      -i|--image-name|--image-repo)
         IMAGE_REPO="${2%:*}"
         if [[ $2 == *:* ]]; then
           IMAGE_TAG="${2##*:}"
