@@ -303,7 +303,7 @@ docker_container_get_id() {
   local id
 
   if [[ $# -eq 0 ]]; then
-    abort "docker_get_container_id: requires at least 1 argument"
+    abort "docker_container_get_id: requires at least 1 argument"
   fi
 
   # Try to find by container name.
@@ -316,7 +316,7 @@ docker_container_get_id() {
 }
 
 docker_container_exists() {
-  if [[ -n $(docker_get_container_id "$1") ]]; then
+  if [[ -n $(docker_container_get_id "$1") ]]; then
     return 0
   else
     return 1
@@ -334,7 +334,7 @@ docker_container_get_status() {
     abort "docker_container_get_status: no such container: $container"
   fi
 
-  id=$(docker_get_container_id "$container")
+  id=$(docker_container_get_id "$container")
   docker container inspect --format='{{.State.Status}}' "$id"
 }
 
