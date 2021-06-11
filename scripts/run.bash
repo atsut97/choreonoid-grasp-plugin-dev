@@ -233,23 +233,9 @@ abort() {
 }
 
 verbose() {
-  local header
-  local filename
-  local directory
-  local prefix
-
-  [[ $VERBOSE == false ]] && return 0
-
-  filename="${BASH_SOURCE[0]##*/}"
-  directory="${BASH_SOURCE[0]%/*}/"
-  if [[ ${#directory} -gt 16 ]]; then
-    prefix="${directory:0:6}"
-    prefix="${prefix}...${directory:(-6)}"
-  else
-    prefix="$directory"
+  if [[ $VERBOSE == true ]]; then
+    echo >&2 "$(_msg_header note)" "$@"
   fi
-  header="${prefix}${filename}:${BASH_LINENO[0]}:in ${FUNCNAME[1]}():"
-  echo >&2 "$header" "$@"
 }
 
 handle_args() {
