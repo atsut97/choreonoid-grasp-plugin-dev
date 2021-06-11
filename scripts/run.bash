@@ -173,6 +173,10 @@ parse() {
           esac
         done
         ;;
+      -v|--verbose)
+        VERBOSE=true
+        shift
+        ;;
       --)
         shift
         args+=("$@")
