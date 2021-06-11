@@ -232,7 +232,7 @@ error() {
 }
 
 abort() {
-  error "$@"
+  echo >&2 "$(_msg_header error)" "$@"
   [[ $DRY_RUN == true ]] && exit 0 || exit 1
 }
 
