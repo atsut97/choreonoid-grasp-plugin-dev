@@ -532,7 +532,7 @@ list() {
 
   reference="${IMAGE_REPO}${IMAGE_TAG:+:}${IMAGE_TAG}"
   candidates=()
-  readarray -t candidates < <(docker images --quiet --filter "reference=$reference")
+  mapfile -t candidates < <(docker images --quiet --filter "reference=$reference")
 
   # Show running and stopped containers based on possible images.
   filters=()
