@@ -303,7 +303,7 @@ docker_container_get_id() {
   local id
 
   if [[ $# -eq 0 ]]; then
-    abort "docker_container_get_id: requires at least 1 argument"
+    abort "Rrequires at least 1 argument"
   fi
 
   # Try to find by container name.
@@ -328,10 +328,10 @@ docker_container_get_status() {
   local id
 
   if [[ $# -eq 0 ]]; then
-    abort "docker_container_get_status: requires at least 1 argument"
+    abort "Requires at least 1 argument"
   fi
   if ! docker_container_exists "$container"; then
-    abort "docker_container_get_status: no such container: $container"
+    abort "No such container: $container"
   fi
 
   id=$(docker_container_get_id "$container")
@@ -343,10 +343,10 @@ docker_container_is_running() {
   local id
 
   if [[ $# -eq 0 ]]; then
-    abort "docker_container_is_running: requires at least 1 argument"
+    abort "Requires at least 1 argument"
   fi
   if ! docker_container_exists "$container"; then
-    abort "docker_container_is_running: no such container: $container"
+    abort "No such container: $container"
   fi
 
   if [[ $(docker_container_get_status "$container") == running ]]; then
@@ -361,10 +361,10 @@ docker_container_is_exited() {
   local id
 
   if [[ $# -eq 0 ]]; then
-    abort "docker_container_is_exited: requires at least 1 argument"
+    abort "Requires at least 1 argument"
   fi
   if ! docker_container_exists "$container"; then
-    abort "docker_container_is_exited: no such container: $container"
+    abort "No such container: $container"
   fi
 
   if [[ $(docker_container_get_status "$container") == exited ]]; then
@@ -398,7 +398,7 @@ docker_start_container() {
     sleep 1
   done
   if [[ $started == false ]]; then
-    abort "docker_start_container: cannot start container: $container"
+    abort "Cannot start container: $container"
   fi
 }
 
@@ -439,10 +439,10 @@ docker_image_get_container_id() {
   local id
 
   if [[ $# -eq 0 ]]; then
-    abort "docker_image_get_container_id: requires at least 1 argument"
+    abort "Requires at least 1 argument"
   fi
   if ! docker_image_exists "$image"; then
-    abort "docker_image_get_container_id: no such image: $image"
+    abort "No such image: $image"
   fi
 
   # Try to find container based on the given image.
@@ -461,7 +461,7 @@ docker_run_container() {
     fi
     runcmd docker run "${opts[@]}" >/dev/null
   else
-    abort "docker_run_container: no such docker image: $image"
+    abort "No such docker image: $image"
   fi
 }
 
@@ -469,10 +469,10 @@ docker_resume_container() {
   local container=$1
 
   if [[ $# -eq 0 ]]; then
-    abort "docker_resume_container: requires at least 1 argument"
+    abort "Requires at least 1 argument"
   fi
   if ! docker_container_exists "$container"; then
-    abort "docker_resume_container: no such container: $container"
+    abort "No such container: $container"
   fi
 
   if docker_container_is_exited "$container"; then
@@ -481,7 +481,7 @@ docker_resume_container() {
   if docker_container_is_running "$container"; then
     docker_exec_container "$container"
   else
-    abort "docker_resume_container: cannot handle the current status: $(docker_container_get_status)"
+    abort "Cannot handle the current status: $(docker_container_get_status)"
   fi
 }
 
@@ -520,7 +520,7 @@ run() {
     else
       # As estimating the most likely Docker image is failed, abort
       # this script.
-      abort "run: Could not find any Docker image available. Please specify a specific image name with the '--image-name' option."
+      abort "Could not find any Docker image available. Please specify a specific image name with the '--image-name' option."
     fi
   fi
 }
