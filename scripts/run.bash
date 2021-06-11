@@ -50,6 +50,9 @@ OPTIONS:
   -l, --list
     List containers that are running or stopped and built images.
 
+  -v, --verbose
+    Verbose mode. Print debugging messages.
+
   <Distro>
     Ubuntu distro codename. Choose among xenial, bionic and focal.
 
@@ -89,6 +92,7 @@ DO_MOUNT=true
 GRASP_PLUGIN_PATH="${root_dir}/graspPlugin"
 RUN_NEW_CONTAINER=false
 SHOW_LIST=false
+VERBOSE=false
 
 # Default values.
 DISTRO=
@@ -227,6 +231,26 @@ abort() {
   else
     exit 1
   fi
+}
+
+verbose() {
+  local header
+  local filename
+  local directory
+  local prefix
+
+  [[ $VERBOSE == false ]] && return 0
+
+  filename="${BASH_SOURCE[0]##*/}"
+  directory="${BASH_SOURCE[0]%/*}/"
+  if [[ ${#directory} -gt 16 ]]; then
+    prefix="${directory:0:6}"
+    prefix="${prefix}...${directory:(-6)}"
+  else
+    prefix="$directory"
+  fi
+  header="${prefix}${filename}:${BASH_LINENO[0]}:in ${FUNCNAME[1]}():"
+  echo >&2 "$header" "$@"
 }
 
 tmux_is_running() {
