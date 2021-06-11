@@ -268,6 +268,17 @@ handle_args() {
       IMAGE_TAG="${SHORT_CNOID_TAG:-*}-${DISTRO}"
     fi
   fi
+
+  # Debug messages.
+  verbose "DISTRO: $DISTRO"
+  verbose "CNOID_TAG: $CNOID_TAG"
+  verbose "SHORT_CNOID_TAG: $SHORT_CNOID_TAG"
+  verbose "GRASP_PLUGIN_PATH: $GRASP_PLUGIN_PATH"
+  verbose "CONTAINER: $CONTAINER"
+  verbose "IMAGE_REPO: $IMAGE_REPO"
+  verbose "IMAGE_TAG: $IMAGE_TAG"
+  verbose "IMAGE: $IMAGE"
+  verbose "RUN_ARGS[${#RUN_ARGS[@]}]: ${RUN_ARGS[*]}"
 }
 
 tmux_is_running() {
