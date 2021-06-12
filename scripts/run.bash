@@ -378,6 +378,7 @@ docker_container_is_exited() {
 docker_exec_container() {
   local container=$1
 
+  verbose "Command: docker exec -it $1 /bin/bash"
   runcmd docker exec -it "$1" /bin/bash >/dev/null
 }
 
@@ -386,16 +387,19 @@ docker_start_container() {
   local status
   local started
 
+  verbose "Command: docker start '$container'"
   runcmd docker start "$container" >/dev/null
   # Wait until the container has started.
   started=false
   # shellcheck disable=SC2034
   for i in {1..3}; do
     status=$(docker_container_get_status "$container")
+    verbose "Container status: $status"
     if [[ $status == running || $DRY_RUN == true ]]; then
       started=true
       break
     fi
+    verbose "Waiting to start: '$container'"
     sleep 1
   done
   if [[ $started == false ]]; then
@@ -417,6 +421,7 @@ docker_image_estimate_name() {
 
   # Create reference string from arguments.
   reference="${repo}${tag:+:}${tag}"
+  verbose "Estimate most likely image from '$reference'"
   image_id=$(docker images --quiet --filter "reference=$reference" | head -n 1)
   # Get a string whose format is repository:tag.
   if [[ -n $image_id ]]; then
@@ -459,8 +464,10 @@ docker_run_container() {
   opts+=("-it")
   if docker_image_exists "$image"; then
     if [[ $DO_MOUNT == true ]]; then
+      verbose "Mount volume ${GRASP_PLUGIN_PATH} to /opt/choreonoid/ext/graspPlugin"
       opts+=("-v" "${GRASP_PLUGIN_PATH}:/opt/choreonoid/ext/graspPlugin")
     fi
+    verbose "Command: docker run ${opts[*]}"
     runcmd docker run "${opts[@]}" >/dev/null
   else
     abort "No such docker image: $image"
@@ -473,9 +480,11 @@ docker_resume_container() {
   require_n_args 1 $#
   docker_container_ensure_exist "$container"
   if docker_container_is_exited "$container"; then
+    verbose "Container '$container' is stooped. Starting it."
     docker_start_container "$container"
   fi
   if docker_container_is_running "$container"; then
+    verbose "Container '$container' is running. Diving into it."
     docker_exec_container "$container"
   else
     abort "Cannot handle the current status: $(docker_container_get_status "$container")"
@@ -497,21 +506,26 @@ run() {
     # '--image-tag'.
     image=$(docker_image_estimate_name "$IMAGE_REPO" "$IMAGE_TAG")
     if [[ -n "$image" ]]; then
+      verbose "Estimated image is '$image'"
       if [[ $RUN_NEW_CONTAINER == true ]]; then
         # When the option '--new' is specified, run a new container
         # based on the estimated image.
+        verbose "Running a new container based on '$image'"
         docker_run_container "$image"
       else
         # Look for a container running or exited based on the
         # estimated image.
+        verbose "Looking for a container whose ancestor is '$image'"
         container=$(docker_image_get_container_id "$image")
         if [[ -n "$container" ]]; then
           # If a container based on the estimated image exists on the
           # host machine, try to resume the container.
+          verbose "Trying to resume existing container '$container'"
           docker_resume_container "$container"
         else
           # If no container based on the estimated image is found, run
           # a new container based on that.
+          verbose "No container is found. Running a container based on '$image'"
           docker_run_container "$image"
         fi
       fi
