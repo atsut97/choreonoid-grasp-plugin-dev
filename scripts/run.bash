@@ -203,6 +203,7 @@ runcmd() {
   return $?
 }
 
+MSG_STACK_OFFSET=0
 _msg_header() {
   # This internal function is designed to be called inside debbuging
   # functions such as abort() and verbose().
@@ -210,6 +211,8 @@ _msg_header() {
   local sourcefile
   local sourcedir
   local prefix
+  declare -i n
+  n=${MSG_STACK_OFFSET}+1
 
   if [[ $VERBOSE == false ]]; then
     echo "${msgtype}:"
@@ -223,8 +226,9 @@ _msg_header() {
     fi
     [[ -n "$prefix" ]] && prefix="${prefix}/"
     sourcefile="${prefix}${BASH_SOURCE[0]##*/}"
-    echo "${sourcefile}:${BASH_LINENO[1]}: in ${FUNCNAME[2]}(): ${msgtype}:"
+    echo "${sourcefile}:${BASH_LINENO[$n]}: in ${FUNCNAME[$n+1]}(): ${msgtype}:"
   fi
+  MSG_STACK_OFFSET=0
 }
 
 error() {
@@ -243,6 +247,18 @@ warning() {
 verbose() {
   if [[ $VERBOSE == true ]]; then
     echo >&2 "$(_msg_header note)" "$@"
+  fi
+}
+
+require_n_args() {
+  local expected=$1
+  local actual=$2
+  declare -a frame
+
+  IFS=" " read -r -a frame <<< "$(caller 1)"
+  if [[ $expected -gt $actual ]]; then
+    MSG_STACK_OFFSET=1
+    abort "Requires $expected arguments, but provided $actual. Called from #${frame[0]} in ${frame[1]}()"
   fi
 }
 
@@ -290,9 +306,9 @@ tmux_is_running() {
 }
 
 tmux_rename_window() {
-  local name=$1
+  require_n_args 1 $#
   if tmux_is_running; then
-    runcmd tmux rename-window "$name"
+    runcmd tmux rename-window "$1"
   fi
 }
 
@@ -302,10 +318,7 @@ docker_container_get_id() {
   local container=$1
   local id
 
-  if [[ $# -eq 0 ]]; then
-    abort "Rrequires at least 1 argument"
-  fi
-
+  require_n_args 1 $#
   # Try to find by container name.
   id=$(docker ps --all --filter name=^/"${container}"\$)
   if [[ -z "$id" ]]; then
@@ -316,6 +329,7 @@ docker_container_get_id() {
 }
 
 docker_container_exists() {
+  require_n_args 1 $#
   if [[ -n $(docker_container_get_id "$1") ]]; then
     return 0
   else
@@ -323,17 +337,16 @@ docker_container_exists() {
   fi
 }
 
+docker_container_ensure_exist() {
+  require_n_args 1 $#
+  docker_container_exists "$1" || abort "No such container: $1"
+}
+
 docker_container_get_status() {
   local container=$1
   local id
 
-  if [[ $# -eq 0 ]]; then
-    abort "Requires at least 1 argument"
-  fi
-  if ! docker_container_exists "$container"; then
-    abort "No such container: $container"
-  fi
-
+  docker_container_ensure_exist "$container"
   id=$(docker_container_get_id "$container")
   docker container inspect --format='{{.State.Status}}' "$id"
 }
@@ -342,13 +355,7 @@ docker_container_is_running() {
   local container=$1
   local id
 
-  if [[ $# -eq 0 ]]; then
-    abort "Requires at least 1 argument"
-  fi
-  if ! docker_container_exists "$container"; then
-    abort "No such container: $container"
-  fi
-
+  docker_container_ensure_exist "$container"
   if [[ $(docker_container_get_status "$container") == running ]]; then
     return 0
   else
@@ -360,13 +367,7 @@ docker_container_is_exited() {
   local container=$1
   local id
 
-  if [[ $# -eq 0 ]]; then
-    abort "Requires at least 1 argument"
-  fi
-  if ! docker_container_exists "$container"; then
-    abort "No such container: $container"
-  fi
-
+  docker_container_ensure_exist "$container"
   if [[ $(docker_container_get_status "$container") == exited ]]; then
     return 0
   else
@@ -427,6 +428,7 @@ docker_image_estimate_name() {
 }
 
 docker_image_exists() {
+  require_n_args 1 $#
   if [[ -n $(docker images --quiet "$1") ]]; then
     return 0
   else
@@ -434,17 +436,17 @@ docker_image_exists() {
   fi
 }
 
+docker_image_ensure_exist() {
+  require_n_args 1 $#
+  docker_image_exists "$1" || abort "No such image: $1"
+}
+
 docker_image_get_container_id() {
   local image=$1
   local id
 
-  if [[ $# -eq 0 ]]; then
-    abort "Requires at least 1 argument"
-  fi
-  if ! docker_image_exists "$image"; then
-    abort "No such image: $image"
-  fi
-
+  require_n_args 1 $#
+  docker_image_ensure_exist "$image"
   # Try to find container based on the given image.
   id=$(docker ps --all --quiet --filter ancestor="$image" --latest)
   echo "$id"
@@ -468,20 +470,15 @@ docker_run_container() {
 docker_resume_container() {
   local container=$1
 
-  if [[ $# -eq 0 ]]; then
-    abort "Requires at least 1 argument"
-  fi
-  if ! docker_container_exists "$container"; then
-    abort "No such container: $container"
-  fi
-
+  require_n_args 1 $#
+  docker_image_ensure_exist "$image"
   if docker_container_is_exited "$container"; then
     docker_start_container "$container"
   fi
   if docker_container_is_running "$container"; then
     docker_exec_container "$container"
   else
-    abort "Cannot handle the current status: $(docker_container_get_status)"
+    abort "Cannot handle the current status: $(docker_container_get_status "$container")"
   fi
 }
 
