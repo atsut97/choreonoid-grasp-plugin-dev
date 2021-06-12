@@ -379,7 +379,7 @@ docker_exec_container() {
   local container=$1
 
   verbose "Command: docker exec -it $1 /bin/bash"
-  runcmd docker exec -it "$1" /bin/bash >/dev/null
+  runcmd docker exec -it "$1" /bin/bash
 }
 
 docker_start_container() {
@@ -388,7 +388,7 @@ docker_start_container() {
   local started
 
   verbose "Command: docker start '$container'"
-  runcmd docker start "$container" >/dev/null
+  runcmd docker start "$container"
   # Wait until the container has started.
   started=false
   # shellcheck disable=SC2034
@@ -468,7 +468,7 @@ docker_run_container() {
       opts+=("-v" "${GRASP_PLUGIN_PATH}:/opt/choreonoid/ext/graspPlugin")
     fi
     verbose "Command: docker run ${opts[*]}"
-    runcmd docker run "${opts[@]}" >/dev/null
+    runcmd docker run "${opts[@]}"
   else
     abort "No such docker image: $image"
   fi
