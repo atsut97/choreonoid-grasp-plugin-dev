@@ -320,10 +320,10 @@ docker_container_get_id() {
 
   require_n_args 1 $#
   # Try to find by container name.
-  id=$(docker ps --all --filter name=^/"${container}"\$)
+  id=$(docker ps --all --quiet --filter name=^/"${container}"\$)
   if [[ -z "$id" ]]; then
     # Try to find by container ID.
-    id=$(docker ps --all --filter id="${container}")
+    id=$(docker ps --all --quiet --filter id="${container}")
   fi
   echo "$id"
 }
@@ -471,7 +471,7 @@ docker_resume_container() {
   local container=$1
 
   require_n_args 1 $#
-  docker_image_ensure_exist "$image"
+  docker_container_ensure_exist "$container"
   if docker_container_is_exited "$container"; then
     docker_start_container "$container"
   fi
@@ -489,6 +489,7 @@ run() {
   if [[ -n "$CONTAINER" ]]; then
     # When a specific container is providied with the '--container'
     # option, resume the container.
+    verbose "Trying to resume user-specified container '$CONTAINER'"
     docker_resume_container "$CONTAINER"
   else
     # Estimate the most likely Docker image to be run from the
