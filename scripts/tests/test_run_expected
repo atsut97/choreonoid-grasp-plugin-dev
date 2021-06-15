@@ -1,0 +1,9 @@
+error: Cannot connect to Docker daemon
+successfully abort
+error: Unknown distro: unknown_os
+successfully abort
+error: No such container: unknown_container
+successfully abort
+error: Could not find any Docker image available. Please specify a specific image name with the '--image-name' option.
+successfully abort
+Complete!
