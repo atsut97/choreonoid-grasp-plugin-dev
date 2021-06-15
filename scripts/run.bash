@@ -312,6 +312,18 @@ tmux_rename_window() {
   fi
 }
 
+docker_is_running() {
+  if ! command -v docker >/dev/null 2>&1; then
+    error "Unable to find docker on the system"
+    return 1
+  elif ! docker stat --no-stream >/dev/null 2>&1; then
+    error "Cannot connect to Docker daemon"
+    return 1
+  else
+    return 0
+  fi
+}
+
 # Returns container's short ID if found, otherwise returns an empty
 # string.
 docker_container_get_id() {
@@ -590,6 +602,9 @@ main() {
 
   # Handle arguments.
   handle_args
+
+  # Check if Docker daemon is runnig.
+  docker_is_running || exit 1
 
   if [[ $SHOW_LIST == true ]]; then
     # Show list of containers and images.
