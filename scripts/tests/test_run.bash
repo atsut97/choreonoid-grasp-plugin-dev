@@ -54,9 +54,9 @@ docker () {
       shift
       _docker_run "$@"
       ;;
-    stat)
+    stats)
       shift
-      _docker_stat "$@"
+      _docker_stats "$@"
       ;;
     *)
       echo >&2 "Unhandled Docker subcommand: $1"
@@ -101,21 +101,21 @@ _docker_run() {
 }
 export -f _docker_run
 
-_docker_stat() {
+_docker_stats() {
   :
 }
-_docker_stat_default() {
+_docker_stats_default() {
   return 0
 }
-export -f _docker_stat
+export -f _docker_stats
 
 # test case: abort when docker is not running
-_docker_stat_return_1() {
+_docker_stats_return_1() {
   return 1
 }
-copy_func _docker_stat_return_1 _docker_stat
+copy_func _docker_stats_return_1 _docker_stats
 $target || echo "successfully abort"
-copy_func _docker_stat_default _docker_stat
+copy_func _docker_stats_default _docker_stats
 
 # test case: abort when unrecognized distro is given
 $target unknown_os || echo "successfully abort"

@@ -316,7 +316,7 @@ docker_is_running() {
   if ! command -v docker >/dev/null 2>&1; then
     error "Unable to find docker on the system"
     return 1
-  elif ! docker stat --no-stream >/dev/null 2>&1; then
+  elif ! docker stats --no-stream >/dev/null 2>&1; then
     error "Cannot connect to Docker daemon"
     return 1
   else
