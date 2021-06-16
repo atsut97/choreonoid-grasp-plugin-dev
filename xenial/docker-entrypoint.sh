@@ -18,7 +18,7 @@ build_grasp_plugin() {
     -DOpenRTM_DIR:PATH=/home/usr/lib/openrtm-1.1/cmake \
     -DUSE_QT5:BOOL=ON \
     -DGRASP_PLUGINS="CnoidRos;ConstraintIK;GeometryHandler;Grasp;GraspConsumer;GraspDataGen;MotionFile;ObjectPlacePlanner;PCL;PRM;PickAndPlacePlanner;RobotInterface;RtcGraspPathPlan;SoftFingerStability;VisionTrigger;"
-  cmake . --build
+  cmake --build .
 }
 
 if [ "$1" = build ]; then
