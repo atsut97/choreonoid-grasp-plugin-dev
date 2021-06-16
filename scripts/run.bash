@@ -433,14 +433,18 @@ docker_image_estimate_name() {
 
   # Create reference string from arguments.
   reference="${repo}${tag:+:}${tag}"
-  verbose "Estimate most likely image from '$reference'"
+  verbose "Looking for an image filtered by 'reference=$reference'"
   image_id=$(docker images --quiet --filter "reference=$reference" | head -n 1)
   # Get a string whose format is repository:tag.
   if [[ -n $image_id ]]; then
+    verbose "Found an image: image_id=$image_id"
     output=$(docker image inspect "$image_id" --format "{{index .RepoTags 0}}")
+  else
+    verbose "Found no images with filter 'reference=$reference'"
   fi
   # Just echo the variable is redundant, I know. This is for ease of
   # debugging.
+  verbose "Estimated most likely image name is '$output'"
   echo "$output"
 }
 
@@ -518,6 +522,7 @@ run() {
     # Estimate the most likely Docker image to be run from the
     # provided arguments and options such as '--image-name' and
     # '--image-tag'.
+    verbose "Estimating most likely image from '$IMAGE_REPO' and '$IMAGE_TAG'"
     image=$(docker_image_estimate_name "$IMAGE_REPO" "$IMAGE_TAG")
     if [[ -n "$image" ]]; then
       verbose "Estimated image is '$image'"
