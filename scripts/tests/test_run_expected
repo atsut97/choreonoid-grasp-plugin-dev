@@ -6,4 +6,5 @@ error: No such container: unknown_container
 successfully abort
 error: Could not find any Docker image available. Please specify a specific image name with the '--image-name' option.
 successfully abort
+docker run -it -v /home/atsuta/develop/docker-choreonoid-grasp-plugin-dev/graspPlugin:/opt/choreonoid/ext/graspPlugin grasp-plugin-dev:1.5-xenial
 Complete!
