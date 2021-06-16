@@ -390,8 +390,8 @@ docker_container_is_exited() {
 docker_exec_container() {
   local container=$1
 
-  verbose "Command: docker exec -it $1 /bin/bash"
-  runcmd docker exec -it "$1" /bin/bash
+  verbose "Command: docker exec -it $container /bin/bash"
+  runcmd docker exec -it "$container" /bin/bash
 }
 
 docker_start_container() {
@@ -471,8 +471,10 @@ docker_image_get_container_id() {
 
 docker_run_container() {
   local image=$1
+  local args=()
   local opts=()
 
+  shift; args=("$@")
   opts+=("-it")
   if docker_image_exists "$image"; then
     if [[ $DO_MOUNT == true ]]; then
@@ -480,7 +482,7 @@ docker_run_container() {
       opts+=("-v" "${GRASP_PLUGIN_PATH}:/opt/choreonoid/ext/graspPlugin")
     fi
     verbose "Command: docker run ${opts[*]}"
-    runcmd docker run "${opts[@]}"
+    runcmd docker run "${opts[@]}" "$image" "${args[@]}"
   else
     abort "No such docker image: $image"
   fi
@@ -523,7 +525,7 @@ run() {
         # When the option '--new' is specified, run a new container
         # based on the estimated image.
         verbose "Running a new container based on '$image'"
-        docker_run_container "$image"
+        docker_run_container "$image" "${RUN_ARGS[@]}"
       else
         # Look for a container running or exited based on the
         # estimated image.
@@ -538,7 +540,7 @@ run() {
           # If no container based on the estimated image is found, run
           # a new container based on that.
           verbose "No container is found. Running a container based on '$image'"
-          docker_run_container "$image"
+          docker_run_container "$image" "${RUN_ARGS[@]}"
         fi
       fi
     else
