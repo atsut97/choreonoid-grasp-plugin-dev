@@ -576,32 +576,6 @@ list() {
   docker images --filter "reference=$reference"
 }
 
-debug() {
-  echo "======="
-  echo "script=$script"
-  echo "script_dir=$script_dir"
-  echo "root_dir=$root_dir"
-  echo "name=$name"
-  echo "--"
-  echo "DRY_RUN=$DRY_RUN"
-  echo "IMAGE_TAG_SPECIFIED=$IMAGE_TAG_SPECIFIED"
-  echo "DO_MOUNT=$DO_MOUNT"
-  echo "GRASP_PLUGIN_PATH=$GRASP_PLUGIN_PATH"
-  echo "RUN_NEW_CONTAINER=$RUN_NEW_CONTAINER"
-  echo "--"
-  echo "DISTRO=$DISTRO"
-  echo "CNOID_TAG=$CNOID_TAG"
-  echo "IMAGE_REPO=$IMAGE_REPO"
-  echo "IMAGE_TAG=$IMAGE_TAG"
-  echo "--"
-  echo "SHORT_CNOID_TAG=$SHORT_CNOID_TAG"
-  echo "IMAGE=$IMAGE"
-  echo "CONTAINER=$CONTAINER"
-  echo "RUN_ARGS[${#RUN_ARGS[@]}]=${RUN_ARGS[*]}"
-  echo "args[${#args[@]}]=${args[*]}"
-  echo "--"
-}
-
 # Main processes.
 main() {
   # Parse optional arguments.
