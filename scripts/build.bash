@@ -36,6 +36,9 @@ OPTIONS:
   -t, --image-tag
     Specify Docker image tag.
 
+  -v, --verbose
+    Verbose mode. Print debugging messages.
+
   <Distro>
     Ubuntu distro codename. Choose among xenial, bionic and focal.
 
@@ -46,12 +49,14 @@ EXAMPLES:
   1. Build Choreonoid with Grasp Plugin on Ubuntu 20.04.
         \$ $0 focal v1.7.0
 
-  2. Build Choreonoid ver. 1.5.0 on Ubuntu 16.04 and exits without
-     running a container.
-        \$ $0 --build-only xenial v1.5.0
+  2. Build an image with a specific image name.
+        \$ $0 --image-name grasp-test:bionic-1.7 bionic v1.7.0
 
-  3. Run a container already built.
-        \$ $0 --run-only xenial v1.6.0
+  3. Build an image with a specific Dockerfile.
+        \$ $0 -f ./xenial/Dockerfile.2 xenial v1.5.0
+
+  4. Build an image with a different building context.
+        \$ $0 --build-context . xenial v1.6.0
 EOF
 }
 
@@ -65,6 +70,7 @@ DRY_RUN=false
 DOCKRFILE_SPECIFIED=false
 BUILD_CONTEXT_SPECIFIED=false
 IMAGE_TAG_SPECIFIED=false
+VERBOSE=false
 
 # Default values.
 DISTRO=focal
@@ -118,6 +124,10 @@ parse() {
         IMAGE_TAG_SPECIFIED=true
         shift 2
         ;;
+      -v|--verbose)
+        VERBOSE=true
+        shift
+        ;;
       -*)
         echo "error: unknown options $1" >&2
         exit 1
@@ -130,17 +140,83 @@ parse() {
   done
 }
 
+runcmd() {
+  if [[ $DRY_RUN == true ]]; then
+    echo "$@"
+  else
+    "$@"
+  fi
+  return $?
+}
+
+MSG_STACK_OFFSET=0
+_msg_header() {
+  # This internal function is designed to be called inside debbuging
+  # functions such as abort() and verbose().
+  local msgtype=${1:-note}
+  local sourcefile
+  local sourcedir
+  local prefix
+  declare -i n
+  n=${MSG_STACK_OFFSET}+1
+
+  if [[ $VERBOSE == false ]]; then
+    echo "${msgtype}:"
+  else
+    sourcedir="${BASH_SOURCE[0]%/*}"
+    if [[ ${#sourcedir} -gt 16 ]]; then
+      prefix="${sourcedir:0:6}"
+      prefix="${prefix}...${sourcedir:(-6)}"
+    else
+      prefix="$sourcedir"
+    fi
+    [[ -n "$prefix" ]] && prefix="${prefix}/"
+    sourcefile="${prefix}${BASH_SOURCE[0]##*/}"
+    echo "${sourcefile}:${BASH_LINENO[$n]}: in ${FUNCNAME[$n+1]}(): ${msgtype}:"
+  fi
+  MSG_STACK_OFFSET=0
+}
+
+error() {
+  echo >&2 "$(_msg_header error)" "$@"
+}
+
+abort() {
+  echo >&2 "$(_msg_header error)" "$@"
+  [[ $DRY_RUN == true ]] && exit 0 || exit 1
+}
+
+warning() {
+  echo >&2 "$(_msg_header warning)" "$@"
+}
+
+verbose() {
+  if [[ $VERBOSE == true ]]; then
+    echo >&2 "$(_msg_header note)" "$@"
+  fi
+}
+
+require_n_args() {
+  local expected=$1
+  local actual=$2
+  declare -a frame
+
+  IFS=" " read -r -a frame <<< "$(caller 1)"
+  if [[ $expected -gt $actual ]]; then
+    MSG_STACK_OFFSET=1
+    abort "Requires $expected arguments, but provided $actual. Called from #${frame[0]} in ${frame[1]}()"
+  fi
+}
+
 handle_args() {
   # Handle exceptions and set user-specified values.
   if [[ ${#args[@]} -lt 2 ]]; then
-    echo "error: requires at least 2 arguments." >&2
-    exit 1
+    abort "Requires at least 2 arguments, but provided ${#args[@]}"
   fi
-  if [[ ":xenial:bionic:focal:" == *":${args[0]}:"* ]]; then
-    DISTRO="${args[0]}"
-  else
-    echo "error: unknown distro: ${args[0]}" >&2
-    exit 1
+
+  DISTRO="${args[0]}"
+  if [[ ! ":xenial:bionic:focal:" == *":${DISTRO}:"* ]]; then
+    abort "Unknown distro: $DISTRO"
   fi
 
   # Get Choreonoid tag.
@@ -163,28 +239,51 @@ handle_args() {
   if [[ $BUILD_CONTEXT_SPECIFIED == false ]]; then
     BUILD_CONTEXT="${DOCKERFILE%/*}"
   fi
+
+  # Debug messages.
+  verbose "DISTRO: $DISTRO"
+  verbose "CNOID_REPO: $CNOID_REPO"
+  verbose "CNOID_TAG: $CNOID_TAG"
+  verbose "SHORT_CNOID_TAG: $SHORT_CNOID_TAG"
+  verbose "DOCKERFILE: $DOCKERFILE"
+  verbose "BUILD_CONTEXT: $BUILD_CONTEXT"
+  verbose "IMAGE_REPO: $IMAGE_REPO"
+  verbose "IMAGE_TAG: $IMAGE_TAG"
+  verbose "IMAGE: $IMAGE"
 }
 
-runcmd() {
-  if [[ $DRY_RUN == true ]]; then
-    echo "$@"
+docker_is_running() {
+  if ! command -v docker >/dev/null 2>&1; then
+    error "Unable to find docker on the system"
+    return 1
+  elif ! docker stats --no-stream >/dev/null 2>&1; then
+    error "Cannot connect to Docker daemon"
+    return 1
   else
-    "$@"
+    return 0
   fi
-  return $?
 }
 
-build_docker_image() {
+docker_build() {
   local image=$1
 
+  require_n_args 1 $#
   if [[ -f "$DOCKERFILE" ]]; then
+    # debug messages
+    verbose "Building Docker Image with the following command:"
+    verbose "docker build \\"
+    verbose "    --tag $image \\"
+    verbose "    --file $DOCKERFILE \\"
+    verbose "    --build-arg CHOREONOID_REPO=$CNOID_REPO \\"
+    verbose "    --build-arg CHOREONOID_TAG=$CNOID_TAG \\"
+    verbose "    $BUILD_CONTEXT"
+
     runcmd docker build --tag "$image" --file "$DOCKERFILE" \
            --build-arg CHOREONOID_REPO="$CNOID_REPO" \
            --build-arg CHOREONOID_TAG="$CNOID_TAG" \
            "$BUILD_CONTEXT"
   else
-    echo "error: No such docker file: $DOCKERFILE" >&2
-    return 1
+    abort "No such Dockerfile: $DOCKERFILE"
   fi
 }
 
@@ -196,8 +295,11 @@ main() {
   # Handle arguments.
   handle_args
 
+  # Check if Docker daemon is runnig.
+  docker_is_running || exit 1
+
   # Build docker image.
-  build_docker_image "$IMAGE"
+  docker_build "$IMAGE"
 }
 
 if [[ "${BASH_SOURCE[0]}" -ef "$0" ]]; then
