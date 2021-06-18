@@ -172,8 +172,10 @@ _docker_images_default() {
 copy_func _docker_images_default _docker_images
 export -f _docker_images
 
+_docker_current_status=exited
+export _docker_current_status
 _docker_container() {
-  :
+  echo "$_docker_current_status"
 }
 export -f _docker_container
 
@@ -185,9 +187,11 @@ _docker_image_default() {
 copy_func _docker_image_default _docker_image
 export -f _docker_image
 
-_docker_start() {
+_docker_start_default() {
   echo "docker start" "$@"
+  _docker_current_status=running
 }
+copy_func _docker_start_default _docker_start
 export -f _docker_start
 
 _docker_exec() {
@@ -200,12 +204,10 @@ _docker_run() {
 }
 export -f _docker_run
 
-_docker_stats() {
-  :
-}
 _docker_stats_default() {
   return 0
 }
+copy_func _docker_stats_default _docker_stats
 export -f _docker_stats
 
 # test case: abort when docker is not running
@@ -226,6 +228,19 @@ $target --container unknown_container || echo "successfully abort"
 # test case: abort when non-existent image is given
 $target --image-name unknown_image || echo "successfully abort"
 
+# test case: run a new container based on specified image when
+# providing an option '--new'
+$target --new xenial v1.7.0
+
+# test case: run a new container without mounting volume
+$target --new --mount false xenial v1.6.0
+
+# test case: run a new container without mounting volume
+$target --new --mount=false xenial v1.7.0
+
+# test case: run a new container without mounting volume
+$target --new --grasp-plugin /usr/src/graspPlugin  xenial v1.7.0
+
 # test case: run a new container when no container is found based on
 # specified image
 CONTAINER_LIST_OLD="$CONTAINER_LIST"
@@ -235,5 +250,26 @@ EOF
 )
 $target xenial v1.5.0
 CONTAINER_LIST="$CONTAINER_LIST_OLD"
+
+# test case: resume a running container
+_docker_current_status=running
+$target xenial v1.5.0
+
+# test case: resume container when it is already exited
+_docker_current_status=exited
+$target xenial v1.5.0
+
+# test case: abort when failing restarting container
+_docker_start_cannot_start() {
+  echo "docker start" "$@"
+  # cannot start the container
+  _docker_current_status=exited
+}
+copy_func _docker_start_cannot_start _docker_start
+$target xenial v1.5.0 || echo "successfully abort"
+copy_func _docker_start_default _docker_start
+
+# test caee: typical usage
+$target focal v1.7.0
 
 echo "Complete!"
