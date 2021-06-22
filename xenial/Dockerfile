@@ -7,6 +7,7 @@ RUN apt-get update && \
     automake \
     cmake \
     curl \
+    doxygen \
     freeglut3-dev \
     g++ \
     gcc \
@@ -18,6 +19,7 @@ RUN apt-get update && \
     libboost-python-dev \
     libboost-regex-dev \
     libboost-thread-dev \
+    libcos4-dev=4.1.6-2ubuntu1 \
     libeigen3-dev \
     libglew-dev \
     libjpeg-dev \
@@ -34,9 +36,14 @@ RUN apt-get update && \
     libyaml-dev \
     lsb-release \
     make \
+    omniidl-python \
     omniidl=4.1.6-2ubuntu1 \
+    omniorb-idl=4.1.6-2ubuntu1 \
     omniorb-nameserver=4.1.6-2ubuntu1 \
+    omniorb=4.1.6-2ubuntu1 \
     pkg-config \
+    python-omniorb \
+    python-yaml \
     python3-dev \
     uuid-dev \
     zlib1g-dev \
@@ -54,10 +61,13 @@ RUN cd /opt && \
     curl -sLO http://openrtm.org/pub/OpenRTM-aist/cxx/1.1.2/OpenRTM-aist-1.1.2.tar.gz && \
     tar xzf OpenRTM-aist-1.1.2.tar.gz && \
     cd OpenRTM-aist-1.1.2 && \
-    ./configure --prefix=/home/usr --without-doxygen && \
+    ./configure --prefix=/home/usr && \
     make && \
     make install && \
     make clean
+
+# Configure environment variables.
+ENV PATH=/home/usr/bin:$PATH
 
 # Define variables used when building.
 ARG CHOREONOID_REPO=choreonoid/choreonoid
