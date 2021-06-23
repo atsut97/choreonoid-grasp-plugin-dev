@@ -68,6 +68,7 @@ RUN cd /opt && \
 
 # Configure environment variables.
 ENV PATH=/home/usr/bin:$PATH
+ENV PYTHONPATH=/usr/lib/omniidl
 
 # Define variables used when building.
 ARG CHOREONOID_REPO=choreonoid/choreonoid
