@@ -7,7 +7,6 @@ RUN apt-get update && \
     automake \
     cmake \
     curl \
-    doxygen \
     freeglut3-dev \
     g++ \
     gcc \
@@ -61,7 +60,7 @@ RUN cd /opt && \
     curl -sLO http://openrtm.org/pub/OpenRTM-aist/cxx/1.1.2/OpenRTM-aist-1.1.2.tar.gz && \
     tar xzf OpenRTM-aist-1.1.2.tar.gz && \
     cd OpenRTM-aist-1.1.2 && \
-    ./configure --prefix=/home/usr && \
+    ./configure --prefix=/home/usr --without-doxygen && \
     make && \
     make install && \
     make clean
