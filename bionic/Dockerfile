@@ -43,9 +43,14 @@ RUN apt-get update && \
     lsb-release \
     make \
     omniidl \
+    omniidl-python \
+    omniorb \
+    omniorb-idl \
     omniorb-nameserver \
     openrtm-aist-dev \
     pkg-config \
+    python-omniorb \
+    python-yaml \
     python3-dev \
     qt5-default \
     uuid-dev \
@@ -55,6 +60,9 @@ RUN apt-get update && \
 # Fix missing links of vtk.
 RUN ln -s /usr/lib/python2.7/dist-packages/vtk/libvtkRenderingPythonTkWidgets.x86_64-linux-gnu.so /usr/lib/x86_64-linux-gnu/libvtkRenderingPythonTkWidgets.so && \
     ln -s /usr/bin/vtk6 /usr/bin/vtk
+
+# Configure environment variables.
+ENV PYTHONPATH=/usr/lib/omniidl
 
 # Define variables used when building.
 ARG CHOREONOID_REPO=choreonoid/choreonoid
