@@ -17,7 +17,6 @@ RUN apt-get update && \
     cmake \
     freeglut3-dev \
     g++ \
-    gcc \
     gettext \
     git \
     libboost-filesystem-dev \
@@ -30,7 +29,6 @@ RUN apt-get update && \
     libeigen3-dev \
     libglew-dev \
     libjpeg-dev \
-    libomniorb4-dev \
     libpcap-dev \
     libpcl-dev \
     libpng-dev \
@@ -41,11 +39,8 @@ RUN apt-get update && \
     libxfixes-dev \
     libyaml-dev \
     lsb-release \
-    make \
     omniidl \
     omniidl-python \
-    omniorb \
-    omniorb-idl \
     omniorb-nameserver \
     openrtm-aist-dev \
     pkg-config \
