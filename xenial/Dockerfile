@@ -3,13 +3,10 @@ FROM ubuntu:xenial
 # Install build dependencies.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    autoconf \
-    automake \
     cmake \
     curl \
     freeglut3-dev \
     g++ \
-    gcc \
     gettext \
     git \
     libboost-filesystem-dev \
@@ -18,14 +15,12 @@ RUN apt-get update && \
     libboost-python-dev \
     libboost-regex-dev \
     libboost-thread-dev \
-    libcos4-dev=4.1.6-2ubuntu1 \
+    libcos4-dev \
     libeigen3-dev \
     libglew-dev \
     libjpeg-dev \
     liblocale-msgfmt-perl \
-    libomniorb4-dev=4.1.6-2ubuntu1 \
     libopenni2-dev \
-    libpcap-dev \
     libpcl-dev \
     libpng12-dev \
     libqhull-dev \
@@ -34,12 +29,9 @@ RUN apt-get update && \
     libxfixes-dev \
     libyaml-dev \
     lsb-release \
-    make \
+    omniidl \
     omniidl-python \
-    omniidl=4.1.6-2ubuntu1 \
-    omniorb-idl=4.1.6-2ubuntu1 \
-    omniorb-nameserver=4.1.6-2ubuntu1 \
-    omniorb=4.1.6-2ubuntu1 \
+    omniorb-nameserver \
     pkg-config \
     python-omniorb \
     python-yaml \
