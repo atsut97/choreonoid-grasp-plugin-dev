@@ -97,7 +97,7 @@ VERBOSE=false
 CNOID_TAG=master
 GRASP_PLUGIN_PATH="${root_dir}/graspPlugin"
 IMAGE_REPO=grasp-plugin-dev
-IMAGE_TAG=latest
+IMAGE_TAG=
 
 # Variables made from user-specified values.
 DISTRO=
@@ -363,6 +363,15 @@ docker_container_get_status() {
   docker container inspect --format='{{.State.Status}}' "$id"
 }
 
+docker_container_get_tag() {
+  local container=$1
+  local id
+
+  docker_container_ensure_exist "$container"
+  id=$(docker_container_get_id "$container")
+  docker container inspect --format='{{.Image}}' "$id"
+}
+
 docker_container_is_running() {
   local container=$1
   local id
@@ -497,6 +506,10 @@ docker_resume_container() {
 
   require_n_args 1 $#
   docker_container_ensure_exist "$container"
+  if [[ -z "$IMAGE_TAG" ]]; then
+    IMAGE_TAG=$(docker_container_get_tag "$container")
+    tmux_rename_window "$IMAGE_TAG"
+  fi
   if docker_container_is_exited "$container"; then
     verbose "Container '$container' is stooped. Starting it."
     docker_start_container "$container"
@@ -591,6 +604,9 @@ main() {
     # Show list of containers and images.
     list
   else
+    # Rename tmux window
+    tmux_rename_window "$IMAGE_TAG"
+
     # Run the main process.
     run
   fi
