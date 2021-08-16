@@ -557,7 +557,7 @@ run() {
         else
           # If no container based on the estimated image is found, run
           # a new container based on that.
-          verbose "No container is found. Running a container based on '$image'"
+          verbose "No container is found. Running a new container based on '$image'"
           docker_run_container "$image" "${RUN_ARGS[@]}"
         fi
       fi
