@@ -35,6 +35,9 @@ build_grasp_plugin() {
 if [ "$1" = build ]; then
   shift
   build_grasp_plugin
+  if [ "$1" = exit ]; then
+    exit
+  fi
 fi
 
 if [ $# -eq 0 ]; then
