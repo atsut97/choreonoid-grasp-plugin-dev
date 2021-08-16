@@ -511,7 +511,7 @@ docker_resume_container() {
     tmux_rename_window "$IMAGE_TAG"
   fi
   if docker_container_is_exited "$container"; then
-    verbose "Container '$container' is stooped. Starting it."
+    verbose "Container '$container' is stopped. Starting it."
     docker_start_container "$container"
   fi
   if docker_container_is_running "$container"; then
