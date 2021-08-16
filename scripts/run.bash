@@ -195,10 +195,17 @@ parse() {
 }
 
 runcmd() {
+  local cmds=()
+
+  # Remove empty string from the arguments.
+  for i in "$@"; do
+    [[ -n "$i" ]] && cmds+=("$i")
+  done
+
   if [[ $DRY_RUN == true ]]; then
-    echo "$@"
+    echo "${cmds[@]}"
   else
-    "$@"
+    "${cmds[@]}"
   fi
   return $?
 }
