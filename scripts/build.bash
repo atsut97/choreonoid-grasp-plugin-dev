@@ -27,6 +27,9 @@ OPTIONS:
   -b, --build-context
     Specify a directory on local machine as build context.
 
+  -x, --buildx
+    Build an image using BuildKit.
+
   -c, --cnoid-repo
     Specify Choreonoid repository. (Default: ${CNOID_REPO})
 
@@ -69,6 +72,7 @@ name="$(basename "$script")"
 DRY_RUN=false
 DOCKRFILE_SPECIFIED=false
 BUILD_CONTEXT_SPECIFIED=false
+BUILDX=false
 IMAGE_TAG_SPECIFIED=false
 VERBOSE=false
 
@@ -107,6 +111,10 @@ parse() {
         BUILD_CONTEXT="$2"
         shift 2
         ;;
+      -x|--buildx)
+        BUILDX=true
+        shift
+        ;;
       -c|--cnoid-repo)
         CNOID_REPO="$2"
         shift 2
@@ -141,10 +149,17 @@ parse() {
 }
 
 runcmd() {
+  local cmds=()
+
+  # Remove empty string from the arguments.
+  for i in "$@"; do
+    [[ -n "$i" ]] && cmds+=("$i")
+  done
+
   if [[ $DRY_RUN == true ]]; then
-    echo "$@"
+    echo "${cmds[@]}"
   else
-    "$@"
+    "${cmds[@]}"
   fi
   return $?
 }
@@ -266,19 +281,25 @@ docker_is_running() {
 
 docker_build() {
   local image=$1
+  local buildx_flag=
 
   require_n_args 1 $#
+  if [[ $BUILDX == true ]]; then
+    buildx_flag="buildx"
+  fi
   if [[ -f "$DOCKERFILE" ]]; then
     # debug messages
     verbose "Building Docker Image with the following command:"
-    verbose "docker build \\"
+    verbose "docker ${buildx_flag} build \\"
     verbose "    --tag $image \\"
     verbose "    --file $DOCKERFILE \\"
     verbose "    --build-arg CHOREONOID_REPO=$CNOID_REPO \\"
     verbose "    --build-arg CHOREONOID_TAG=$CNOID_TAG \\"
     verbose "    $BUILD_CONTEXT"
 
-    runcmd docker build --tag "$image" --file "$DOCKERFILE" \
+    runcmd docker "$buildx_flag" build \
+           --tag "$image" \
+           --file "$DOCKERFILE" \
            --build-arg CHOREONOID_REPO="$CNOID_REPO" \
            --build-arg CHOREONOID_TAG="$CNOID_TAG" \
            "$BUILD_CONTEXT"
