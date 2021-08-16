@@ -2,6 +2,16 @@
 
 set -e
 
+EXIT_DIR=$(pwd)
+
+err_handler() {
+  #shellcheck disable=SC2181
+  [ $? -eq 0 ] && exit
+  cd "$EXIT_DIR"
+}
+
+trap err_handler EXIT
+
 build_grasp_plugin() {
   mkdir -p /opt/choreonoid/build
   cd /opt/choreonoid/build
@@ -21,6 +31,7 @@ build_grasp_plugin() {
     -DUSE_QT5:BOOL=ON \
     -DGRASP_PLUGINS="CnoidRos;ConstraintIK;GeometryHandler;Grasp;GraspConsumer;GraspDataGen;MotionFile;ObjectPlacePlanner;PCL;PRM;PickAndPlacePlanner;RobotInterface;RtcGraspPathPlan;SoftFingerStability;VisionTrigger;"
   cmake --build .
+  cd "$EXIT_DIR"
 }
 
 if [ "$1" = build ]; then
