@@ -241,6 +241,9 @@ $target --new --mount=false xenial v1.7.0
 # test case: run a new container without mounting volume
 $target --new --grasp-plugin /usr/src/graspPlugin  xenial v1.7.0
 
+# test case: run a new container with --rm option
+$target --new --rm bionic v1.7.0
+
 # test case: run a new container when no container is found based on
 # specified image
 CONTAINER_LIST_OLD="$CONTAINER_LIST"

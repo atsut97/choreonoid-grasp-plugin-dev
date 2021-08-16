@@ -50,6 +50,10 @@ OPTIONS:
   -l, --list
     List containers that are running or stopped and built images.
 
+  --rm
+    Automatically remove the container when it exits. This option has
+    no effects when restarting an existing container.
+
   -v, --verbose
     Verbose mode. Print debugging messages.
 
@@ -91,6 +95,7 @@ IMAGE_TAG_SPECIFIED=false
 DO_MOUNT=true
 RUN_NEW_CONTAINER=false
 SHOW_LIST=false
+AUTO_REMOVE=false
 VERBOSE=false
 
 # Default values.
@@ -172,6 +177,10 @@ parse() {
               ;;
           esac
         done
+        ;;
+      --rm)
+        AUTO_REMOVE=true
+        shift
         ;;
       -v|--verbose)
         VERBOSE=true
@@ -496,6 +505,10 @@ docker_run_container() {
 
   shift; args=("$@")
   opts+=("-it")
+  if [[ $AUTO_REMOVE == true ]]; then
+    verbose "Run container with '--rm' option"
+    opts+=("--rm")
+  fi
   if docker_image_exists "$image"; then
     if [[ $DO_MOUNT == true ]]; then
       verbose "Mount volume ${GRASP_PLUGIN_PATH} to /opt/choreonoid/ext/graspPlugin"

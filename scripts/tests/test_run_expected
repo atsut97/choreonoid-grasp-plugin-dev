@@ -10,6 +10,7 @@ docker run -it -v /home/atsuta/develop/docker-choreonoid-grasp-plugin-dev/graspP
 docker run -it grasp-plugin-dev:1.6-xenial
 docker run -it grasp-plugin-dev:1.7-xenial
 docker run -it -v /usr/src/graspPlugin:/opt/choreonoid/ext/graspPlugin grasp-plugin-dev:1.7-xenial
+docker run -it --rm -v /home/atsuta/develop/docker-choreonoid-grasp-plugin-dev/graspPlugin:/opt/choreonoid/ext/graspPlugin grasp-plugin-dev:1.7-bionic
 docker run -it -v /home/atsuta/develop/docker-choreonoid-grasp-plugin-dev/graspPlugin:/opt/choreonoid/ext/graspPlugin grasp-plugin-dev:1.5-xenial
 docker exec -it 7581a090cbd8 /bin/bash
 docker start 7581a090cbd8
