@@ -24,10 +24,10 @@ build_grasp_plugin() {
     -DBUILD_PYTHON_PLUGIN:BOOL=ON \
     -DCNOID_ENABLE_GETTEXT:BOOL=ON \
     -DENABLE_CORBA:BOOL=ON \
-    -DINSTALL_DEPENDENCIES:BOOL=TRUE \
-    -DINSTALL_SDK:BOOL=TRUE \
-    -DUSE_EXTERNAL_EIGEN:BOOL=TRUE \
-    -DUSE_EXTERNAL_YAML:BOOL=TRUE \
+    -DINSTALL_DEPENDENCIES:BOOL=ON \
+    -DINSTALL_SDK:BOOL=ON \
+    -DUSE_EXTERNAL_EIGEN:BOOL=ON \
+    -DUSE_EXTERNAL_YAML:BOOL=ON \
     -DUSE_QT5:BOOL=ON \
     -DGRASP_PLUGINS="CnoidRos;ConstraintIK;GeometryHandler;Grasp;GraspConsumer;GraspDataGen;MotionFile;ObjectPlacePlanner;PCL;PRM;PickAndPlacePlanner;RobotInterface;RtcGraspPathPlan;SoftFingerStability;VisionTrigger;"
   cmake --build .
